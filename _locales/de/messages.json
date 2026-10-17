@@ -38,6 +38,15 @@
   "keyPh": {
     "message": "Feldname eingeben, Enter"
   },
+  "preview": {
+    "message": "Vorschau"
+  },
+  "tbPreview": {
+    "message": "Gerenderte Vorschau ein- oder ausblenden (Links öffnen in neuem Tab; Bilder werden nicht geladen)"
+  },
+  "previewTruncated": {
+    "message": "Vorschau gekürzt: Das Dokument ist sehr lang."
+  },
   "strayWarn": {
     "message": "Zeile $LINE$ ist kein Metadatum, daher endet der Frontmatter davor und der Rest ist Fließtext: „$TEXT$“. Metadaten-Zeilen müssen wie „Schlüssel: Wert“ aussehen; Folgezeilen brauchen 4 Leerzeichen.",
     "placeholders": {

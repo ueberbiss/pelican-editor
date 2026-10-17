@@ -6,6 +6,24 @@ A single-file Markdown editor with a form for Pelican frontmatter. No install: o
 The UI is translatable. Translations are standard `messages.json` files, so
 collaborative translation tools can work on them directly.
 
+## Preview
+
+The **Preview** button in the toolbar shows the rendered Markdown (without the frontmatter) next to
+the editor. The choice is remembered. It follows Python-Markdown, which Pelican uses: a list needs a
+blank line before it, nested lists need 4 spaces, `#Heading` works without a space.
+Supported: headings, emphasis, code, fenced and indented code blocks, quotes, lists, tables,
+links, reference links, images, rules.
+
+The preview is built with DOM calls only (never `innerHTML`), so it is safe with the page's strict CSP:
+
+- Raw HTML in the text is shown as text, not rendered.
+- Only `http(s)` and `mailto` links are clickable (they open in a new tab). Relative links,
+  `{filename}/…` and anything else show as inert text with the target in the tooltip.
+- Images are not loaded (the page makes no network requests). They show as a placeholder with the alt text.
+- Very long documents are cut after 300,000 characters, and paragraphs over 8,000 characters are shown as plain text.
+
+The parser (`mdParse`) is inside the `// <pure>` block, so it is tested directly in `test/preview.test.js`.
+
 ## Project layout
 
 | Path | Purpose |

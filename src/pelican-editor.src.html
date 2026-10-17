@@ -97,9 +97,32 @@
     width:100%;flex:1;min-height:0;resize:none;border:none;padding:16px 20px;background:var(--bg);color:var(--text);
     font:14px/1.55 var(--mono);tab-size:2;
   }
+  #pane{flex:1;min-height:0;display:flex}
+  #pane > #ed{flex:1 1 0;width:auto;min-width:0}
+  #preview{flex:1 1 0;min-width:0;overflow:auto;padding:16px 20px;border-left:1px solid var(--line);line-height:1.6;overflow-wrap:anywhere}
+  #preview[hidden]{display:none}
+  #preview h1,#preview h2,#preview h3,#preview h4,#preview h5,#preview h6{line-height:1.25;margin:1.1em 0 .5em}
+  #preview > :first-child{margin-top:0}
+  #preview h1{font-size:1.7em} #preview h2{font-size:1.4em} #preview h3{font-size:1.2em}
+  #preview h4,#preview h5,#preview h6{font-size:1em}
+  #preview p,#preview ul,#preview ol,#preview pre,#preview blockquote,#preview table{margin:0 0 .9em}
+  #preview pre{background:var(--chip);padding:10px 12px;border-radius:6px;overflow:auto;font:13px/1.45 var(--mono)}
+  #preview code{background:var(--chip);padding:1px 5px;border-radius:4px;font:.9em var(--mono)}
+  #preview pre code{background:none;padding:0}
+  #preview blockquote{margin-left:0;padding-left:12px;border-left:3px solid var(--line);color:var(--muted)}
+  #preview table{border-collapse:collapse}
+  #preview th,#preview td{border:1px solid var(--line);padding:4px 8px}
+  #preview a{color:var(--accent)}
+  #preview .link-off{text-decoration:underline dotted;cursor:help}
+  #preview .img-ph{display:inline-block;padding:0 8px;border:1px dashed var(--line);border-radius:4px;color:var(--muted)}
+  #preview hr{border:none;border-top:1px solid var(--line)}
+  #preview .note{color:var(--muted);font-size:13px}
+  #btn-preview[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
   @media (max-width:800px){
     main{grid-template-columns:1fr;grid-template-rows:minmax(0,40vh) 1fr}
     aside{border-right:none;border-bottom:1px solid var(--line)}
+    #pane{flex-direction:column}
+    #preview{border-left:none;border-top:1px solid var(--line)}
   }
 </style>
 </head>
@@ -159,8 +182,13 @@
       <span class="sep"></span>
       <button data-act="link" data-i18n-title="tbLink">🔗</button>
       <button data-act="image" data-i18n-title="tbImage">🖼</button>
+      <span class="grow"></span>
+      <button id="btn-preview" aria-pressed="false" data-i18n="preview" data-i18n-title="tbPreview"></button>
     </div>
-    <textarea id="ed" dir="auto" spellcheck="false" data-i18n-placeholder="edPh"></textarea>
+    <div id="pane">
+      <textarea id="ed" dir="auto" spellcheck="false" data-i18n-placeholder="edPh"></textarea>
+      <div id="preview" hidden aria-label="Preview"></div>
+    </div>
   </section>
 </main>
 
@@ -219,6 +247,323 @@ function slugify(s) {
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+// ---------- Markdown -> node tree (for the preview; follows Python-Markdown, which Pelican uses) ----------
+// Output is plain data. The UI turns it into DOM with createElement/textContent only, never innerHTML.
+// Raw HTML in the text is shown literally. Limits keep hostile input from stalling the page.
+const MD_MAX_CHARS = 300000, MD_MAX_INLINE = 8000, MD_MAX_DEPTH = 8;
+const MD_ESC = '\\`*_{}[]()#+-.!~|<>';
+const MD_HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+const MD_LI = /^ {0,3}([*+-]|\d{1,9}[.)])[ \t]+(.*)$/;
+const MD_TSEP = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+const MD_IND = /^(?: {4}|\t)/;
+const mdBlank = l => l.trim() === '';
+const mdIsAlnum = ch => /[\p{L}\p{N}]/u.test(ch || '');
+const mdStartsBlock = l => /^ {0,3}(?:`{3,}|~{3,}|#|>)/.test(l) || MD_HR.test(l);
+
+// Only http(s) and mailto links are clickable. Relative links, "{filename}/x", anchors and
+// everything else (javascript:, data:, ...) stay inert text. Returns null for those.
+function mdSafeUrl(u) {
+  let s = ''; // drop whitespace, control and invisible characters that browsers ignore inside a scheme
+  for (const ch of String(u)) {
+    const c = ch.codePointAt(0);
+    if (!(c <= 0x20 || (c >= 0x7f && c <= 0x9f) || (c >= 0x200b && c <= 0x200f) || c === 0x2028 || c === 0x2029 || c === 0xfeff)) s += ch;
+  }
+  const m = /^([a-z][a-z0-9+.-]*):/i.exec(s);
+  return m && /^(?:https?|mailto)$/i.test(m[1]) ? s : null;
+}
+
+function mdBracketEnd(s, open) {
+  let depth = 0;
+  for (let k = open; k < s.length; k++) {
+    const c = s[k];
+    if (c === '\\') k++;
+    else if (c === '[') depth++;
+    else if (c === ']' && --depth === 0) return k;
+  }
+  return -1;
+}
+
+function mdLinkDest(s, p) {
+  if (s[p] !== '(') return null;
+  let k = p + 1;
+  while (s[k] === ' ' || s[k] === '\n') k++;
+  let href = '';
+  if (s[k] === '<') {
+    const e = s.indexOf('>', k);
+    if (e < 0) return null;
+    href = s.slice(k + 1, e); k = e + 1;
+  } else {
+    let depth = 0;
+    for (; k < s.length; k++) {
+      const c = s[k];
+      if (c === '\\' && k + 1 < s.length) { href += s[++k]; continue; }
+      if (/\s/.test(c)) break;
+      if (c === '(') depth++;
+      else if (c === ')') { if (depth === 0) break; depth--; }
+      href += c;
+    }
+  }
+  while (/\s/.test(s[k] || '')) k++;
+  let title = '';
+  const q = s[k];
+  if (q === '"' || q === "'") {
+    const e = s.indexOf(q, k + 1);
+    if (e < 0) return null;
+    title = s.slice(k + 1, e); k = e + 1;
+    while (/\s/.test(s[k] || '')) k++;
+  }
+  return s[k] === ')' ? { href, title, end: k + 1 } : null;
+}
+
+// Closing delimiter for emphasis: returns the index where the closing marker starts, or -1.
+function mdFindClose(s, from, m) {
+  const c = m[0], L = m.length;
+  for (let k = from; k < s.length; k++) {
+    const ch = s[k];
+    if (ch === '\\') { k++; continue; }
+    if (ch === '`') {
+      let j = k; while (s[j] === '`') j++;
+      const e = s.indexOf(s.slice(k, j), j);
+      k = e > 0 ? e + (j - k) - 1 : j - 1;
+      continue;
+    }
+    if (ch !== c) continue;
+    let e = k; while (s[e] === c) e++;
+    const run = e - k;
+    const ok = (L === 1 ? run === 1 : run >= L) && k > from && !/\s/.test(s[k - 1]);
+    if (ok && !(c === '_' && mdIsAlnum(s[e]))) return e - L;
+    k = e - 1;
+  }
+  return -1;
+}
+
+function mdInline(s, refs) {
+  if (s.length > MD_MAX_INLINE) return [{ t: 'text', v: s }];
+  return mdInl(s, refs || {}, 0);
+}
+
+function mdInl(s, refs, depth) {
+  const out = [], failed = {}, n = s.length;
+  let buf = '', i = 0;
+  const flush = () => { if (buf) { out.push({ t: 'text', v: buf }); buf = ''; } };
+  const sub = (str) => depth < MD_MAX_DEPTH ? mdInl(str, refs, depth + 1) : [{ t: 'text', v: str }];
+  while (i < n) {
+    const c = s[i];
+    if (c === '\\' && i + 1 < n && MD_ESC.includes(s[i + 1])) { buf += s[i + 1]; i += 2; continue; }
+    if (c === '\n') {
+      if (buf.endsWith('  ')) { buf = buf.trimEnd(); flush(); out.push({ t: 'br' }); } else buf += '\n';
+      i++; continue;
+    }
+    if (c === '`') {
+      let j = i; while (s[j] === '`') j++;
+      const run = j - i, tick = s.slice(i, j);
+      let k = j, close = -1;
+      while ((k = s.indexOf(tick, k)) !== -1) {
+        if (s[k + run] !== '`' && s[k - 1] !== '`') { close = k; break; }
+        k++;
+      }
+      if (close >= 0) { flush(); out.push({ t: 'code', v: s.slice(j, close).trim() }); i = close + run; }
+      else { buf += tick; i = j; }
+      continue;
+    }
+    if (c === '<') {
+      const m = /^<((?:https?:\/\/|mailto:)[^\s<>]+|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)>/i.exec(s.slice(i, i + 500));
+      if (m) {
+        const raw = /^(?:https?:|mailto:)/i.test(m[1]) ? m[1] : 'mailto:' + m[1];
+        flush(); out.push({ t: 'a', href: mdSafeUrl(raw), raw, title: '', c: [{ t: 'text', v: m[1] }] });
+        i += m[0].length; continue;
+      }
+    }
+    if (c === '[' || (c === '!' && s[i + 1] === '[')) {
+      const img = c === '!', open = img ? i + 1 : i, close = mdBracketEnd(s, open);
+      if (close > 0) {
+        const label = s.slice(open + 1, close);
+        let href = null, title = '', end = -1;
+        const dest = mdLinkDest(s, close + 1);
+        if (dest) { href = dest.href; title = dest.title; end = dest.end; }
+        else {
+          const m2 = /^\[([^\]]*)\]/.exec(s.slice(close + 1, close + 200));
+          const id = (m2 && m2[1] ? m2[1] : label).toLowerCase().replace(/\s+/g, ' ');
+          const ref = refs[id];
+          if (ref) { href = ref.href; title = ref.title; end = close + 1 + (m2 ? m2[0].length : 0); }
+        }
+        if (end > 0) {
+          flush();
+          if (img) out.push({ t: 'img', alt: label.replace(/\\(.)/g, '$1'), src: href, title });
+          else out.push({ t: 'a', href: mdSafeUrl(href), raw: href, title, c: sub(label) });
+          i = end; continue;
+        }
+      }
+      const lit = img ? '![' : '[';
+      buf += lit; i += lit.length; continue;
+    }
+    if (c === '*' || c === '_' || c === '~') {
+      const dbl = s[i + 1] === c;
+      const m = c === '~' ? (dbl ? '~~' : '') : dbl ? c + c : c;
+      if (m && !(c === '_' && mdIsAlnum(s[i - 1])) && s[i + m.length] !== undefined && !/\s/.test(s[i + m.length])) {
+        const from = i + m.length;
+        const close = failed[m] !== undefined && from >= failed[m] ? -1 : mdFindClose(s, from, m);
+        if (close > from) {
+          flush();
+          out.push({ t: m === '~~' ? 'del' : m.length === 2 ? 'strong' : 'em', c: sub(s.slice(from, close)) });
+          i = close + m.length; continue;
+        }
+        if (failed[m] === undefined || from < failed[m]) failed[m] = from;
+      }
+      const lit = m || c;
+      buf += lit; i += lit.length; continue;
+    }
+    buf += c; i++;
+  }
+  flush();
+  return out;
+}
+
+function mdSplitRow(l) {
+  const cells = [];
+  let cur = '', s = l.trim();
+  if (s[0] === '|') s = s.slice(1);
+  if (s.endsWith('|') && !s.endsWith('\\|')) s = s.slice(0, -1);
+  for (let k = 0; k < s.length; k++) {
+    if (s[k] === '\\' && s[k + 1] === '|') { cur += '|'; k++; }
+    else if (s[k] === '|') { cells.push(cur.trim()); cur = ''; }
+    else cur += s[k];
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+function mdBlocks(lines, refs, depth) {
+  const out = [], inl = s => mdInline(s, refs);
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (mdBlank(line)) { i++; continue; }
+    if (depth >= MD_MAX_DEPTH) { out.push({ t: 'p', c: [{ t: 'text', v: lines.slice(i).join('\n') }] }); break; }
+
+    let m = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)/.exec(line);
+    if (m) {
+      const f = m[1], code = [];
+      i++;
+      while (i < lines.length) {
+        const cm = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(lines[i]);
+        if (cm && cm[1][0] === f[0] && cm[1].length >= f.length) { i++; break; }
+        code.push(lines[i++]);
+      }
+      out.push({ t: 'pre', v: code.join('\n'), lang: m[2] });
+      continue;
+    }
+    m = /^ {0,3}(#{1,6})(.*)$/.exec(line);
+    if (m) {
+      let txt = m[2].trim(), e = txt.length;
+      while (e > 0 && txt[e - 1] === '#') e--;
+      out.push({ t: 'h', n: m[1].length, c: inl(txt.slice(0, e).trim()) });
+      i++; continue;
+    }
+    if (MD_HR.test(line)) { out.push({ t: 'hr' }); i++; continue; }
+    if (/^ {0,3}>/.test(line)) {
+      const q = [];
+      while (i < lines.length && !mdBlank(lines[i])) q.push(lines[i++].replace(/^ {0,3}> ?/, ''));
+      out.push({ t: 'quote', c: mdBlocks(q, refs, depth + 1) });
+      continue;
+    }
+    if (line.includes('|') && i + 1 < lines.length && MD_TSEP.test(lines[i + 1])) {
+      const head = mdSplitRow(line), sep = mdSplitRow(lines[i + 1]);
+      if (head.length === sep.length) {
+        const align = sep.map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : '');
+        const rows = [];
+        i += 2;
+        while (i < lines.length && !mdBlank(lines[i]) && lines[i].includes('|')) {
+          const cells = mdSplitRow(lines[i++]);
+          rows.push(head.map((_, k) => inl(cells[k] || '')));
+        }
+        out.push({ t: 'table', align, head: head.map(inl), rows });
+        continue;
+      }
+    }
+    m = MD_LI.exec(line);
+    if (m) {
+      const isNum = x => /\d/.test(x[0]);
+      const ordered = isNum(m[1]), items = [];
+      const start = ordered ? parseInt(m[1], 10) : 1;
+      let loose = false;
+      while (i < lines.length) {
+        const lm = MD_LI.exec(lines[i]);
+        if (!lm || isNum(lm[1]) !== ordered) break;
+        const item = [lm[2]];
+        i++;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (mdBlank(l)) {
+            let j = i; while (j < lines.length && mdBlank(lines[j])) j++;
+            if (j < lines.length && MD_IND.test(lines[j])) { for (; i < j; i++) item.push(''); loose = true; continue; }
+            break;
+          }
+          if (MD_IND.test(l)) {
+            const d = l.replace(MD_IND, ''), last = item[item.length - 1];
+            // an indented marker right under item text starts a nested list (as in Python-Markdown)
+            if (MD_LI.test(d) && !mdBlank(last) && !MD_LI.test(last)) item.push('');
+            item.push(d); i++; continue;
+          }
+          if (MD_LI.test(l) || mdStartsBlock(l)) break;
+          item.push(l); i++;
+        }
+        items.push(mdBlocks(item, refs, depth + 1));
+        let j = i; while (j < lines.length && mdBlank(lines[j])) j++;
+        if (j > i && j < lines.length) {
+          const nm = MD_LI.exec(lines[j]);
+          if (nm && isNum(nm[1]) === ordered) { loose = true; i = j; } else break;
+        }
+      }
+      out.push({ t: ordered ? 'ol' : 'ul', start, tight: !loose, items });
+      continue;
+    }
+    if (MD_IND.test(line)) {
+      const code = [];
+      while (i < lines.length && (mdBlank(lines[i]) || MD_IND.test(lines[i]))) code.push(lines[i++].replace(MD_IND, ''));
+      while (code.length && mdBlank(code[code.length - 1])) code.pop();
+      out.push({ t: 'pre', v: code.join('\n'), lang: '' });
+      continue;
+    }
+    const para = [];
+    let heading = 0;
+    while (i < lines.length && !mdBlank(lines[i])) {
+      const l = lines[i];
+      if (para.length) {
+        const sm = /^ {0,3}(=+|-+)[ \t]*$/.exec(l);
+        if (sm) { heading = sm[1][0] === '=' ? 1 : 2; i++; break; }
+        if (mdStartsBlock(l)) break;
+      }
+      para.push(l.replace(/^[ \t]+/, ''));
+      i++;
+    }
+    const content = inl(para.join('\n').trimEnd());
+    out.push(heading ? { t: 'h', n: heading, c: content } : { t: 'p', c: content });
+  }
+  return out;
+}
+
+// Entry point: returns { blocks, truncated }.
+function mdParse(text) {
+  let t = String(text).replace(/\r\n?/g, '\n'), truncated = false;
+  if (t.length > MD_MAX_CHARS) {
+    const cut = t.lastIndexOf('\n', MD_MAX_CHARS);
+    t = t.slice(0, cut > 0 ? cut : MD_MAX_CHARS);
+    truncated = true;
+  }
+  const refs = {};
+  let fence = false;
+  const lines = t.split('\n').filter(l => {
+    if (/^ {0,3}(?:`{3,}|~{3,})/.test(l)) { fence = !fence; return true; }
+    if (fence) return true;
+    const m = /^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?(?:[ \t]+(?:"([^"]*)"|'([^']*)'|\(([^)]*)\)))?[ \t]*$/.exec(l);
+    if (!m) return true;
+    refs[m[1].toLowerCase().replace(/\s+/g, ' ')] = { href: m[2], title: m[3] ?? m[4] ?? m[5] ?? '' };
+    return false;
+  });
+  return { blocks: mdBlocks(lines, refs, 0), truncated };
 }
 // </pure>
 
@@ -340,7 +685,92 @@ function ui() {
   $('dirty').className = dirty ? 'on' : '';
   document.title = (dirty ? '● ' : '') + fname + ' – Pelican MD';
   showStray();
+  schedulePreview();
   renderTabs();
+}
+
+// ---------- rendered preview (DOM built from the mdParse tree; no innerHTML) ----------
+const prev = $('preview');
+let prevOn = lsGet('pme.preview') === '1', prevTimer = 0;
+function buildInline(nodes, parent) {
+  nodes.forEach(n => {
+    let el;
+    switch (n.t) {
+      case 'text': parent.append(document.createTextNode(n.v)); return;
+      case 'br': parent.append(document.createElement('br')); return;
+      case 'code': el = document.createElement('code'); el.textContent = n.v; break;
+      case 'em': case 'strong': case 'del': el = document.createElement(n.t); buildInline(n.c, el); break;
+      case 'img': // never loaded: the page has no network access and must not leak requests
+        el = document.createElement('span'); el.className = 'img-ph';
+        el.textContent = '🖼 ' + (n.alt || n.src); el.title = n.src; break;
+      case 'a':
+        if (n.href) { el = document.createElement('a'); el.href = n.href; el.target = '_blank'; el.rel = 'noopener noreferrer'; if (n.title) el.title = n.title; }
+        else { el = document.createElement('span'); el.className = 'link-off'; el.title = n.raw; }
+        buildInline(n.c, el); break;
+      default: return;
+    }
+    parent.append(el);
+  });
+}
+function buildBlocks(blocks, parent, tight) {
+  blocks.forEach(b => {
+    let el;
+    switch (b.t) {
+      case 'p':
+        if (tight) { buildInline(b.c, parent); return; }
+        el = document.createElement('p'); buildInline(b.c, el); break;
+      case 'h': el = document.createElement('h' + b.n); buildInline(b.c, el); break;
+      case 'hr': el = document.createElement('hr'); break;
+      case 'pre': {
+        el = document.createElement('pre');
+        const code = document.createElement('code'); code.textContent = b.v; el.append(code);
+        break;
+      }
+      case 'quote': el = document.createElement('blockquote'); buildBlocks(b.c, el, false); break;
+      case 'ul': case 'ol':
+        el = document.createElement(b.t);
+        if (b.t === 'ol' && b.start !== 1) el.start = b.start;
+        b.items.forEach(it => { const li = document.createElement('li'); buildBlocks(it, li, b.tight); el.append(li); });
+        break;
+      case 'table': {
+        el = document.createElement('table');
+        const row = (cells, tag, parentEl) => {
+          const tr_ = document.createElement('tr');
+          cells.forEach((c, k) => {
+            const cell = document.createElement(tag);
+            if (b.align[k]) cell.style.textAlign = b.align[k];
+            buildInline(c, cell); tr_.append(cell);
+          });
+          parentEl.append(tr_);
+        };
+        const thead = document.createElement('thead'), tbody = document.createElement('tbody');
+        row(b.head, 'th', thead);
+        b.rows.forEach(r => row(r, 'td', tbody));
+        el.append(thead, tbody);
+        break;
+      }
+      default: return;
+    }
+    parent.append(el);
+  });
+}
+function renderPreview() {
+  prevTimer = 0;
+  if (!prevOn) return;
+  prev.setAttribute('aria-label', tr('preview'));
+  const r = mdParse(parse(ed.value).body);
+  const frag = document.createDocumentFragment();
+  buildBlocks(r.blocks, frag, false);
+  if (r.truncated) {
+    const p = document.createElement('p'); p.className = 'note'; p.textContent = tr('previewTruncated'); frag.append(p);
+  }
+  prev.replaceChildren(frag);
+}
+function schedulePreview() { if (prevOn && !prevTimer) prevTimer = setTimeout(renderPreview, 120); }
+function setPreview(on) {
+  prevOn = on; lsSet('pme.preview', on ? '1' : '0');
+  prev.hidden = !on; $('btn-preview').setAttribute('aria-pressed', String(on));
+  if (on) { clearTimeout(prevTimer); renderPreview(); }
 }
 function showStray() {
   const el = $('stray-warn');
@@ -875,9 +1305,11 @@ $('pack-input').addEventListener('change', async e => {
     say(tr('packLoaded', { lang: I18N[code].langName || code }));
   } catch (err) { say(tr('packInvalid'), true); }
 });
+$('btn-preview').addEventListener('click', () => setPreview(!prevOn));
 docs = [newDoc()];
 activate(0);
 applyLang();
+setPreview(prevOn);
 })();
 </script>
 </body>

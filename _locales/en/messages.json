@@ -51,6 +51,18 @@
     "message": "Enter field name, then Enter",
     "description": "Placeholder in the text box for typing a new frontmatter field name. \"Enter\" refers to the Enter key."
   },
+  "preview": {
+    "message": "Preview",
+    "description": "Toolbar button that shows or hides the rendered Markdown preview next to the editor."
+  },
+  "tbPreview": {
+    "message": "Show or hide the rendered preview (links open in a new tab; images are not loaded)",
+    "description": "Tooltip of the preview toolbar button."
+  },
+  "previewTruncated": {
+    "message": "Preview shortened: the document is very long.",
+    "description": "Note at the end of the preview when only the first part of a very long document is rendered."
+  },
   "strayWarn": {
     "message": "Line $LINE$ is not metadata, so the frontmatter ends before it and the rest is body text: “$TEXT$”. Metadata lines must look like “Key: value”; continuation lines need 4 spaces.",
     "description": "Warning under the frontmatter form when a non-blank line that is not a valid metadata line ends the header. $LINE$ is the line number, $TEXT$ the start of that line. “Key: value” is a literal example; keep the 4 spaces rule.",
