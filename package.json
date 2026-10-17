@@ -1,0 +1,14 @@
+{
+  "name": "pelican-md-editor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Single-file Markdown editor with Pelican frontmatter form",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check",
+    "test": "node build.mjs && node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}

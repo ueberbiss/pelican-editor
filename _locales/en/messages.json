@@ -1,0 +1,222 @@
+{
+  "banner": {
+    "message": "This browser cannot save directly to files. “Save” downloads the file instead. Use Chrome or Edge for direct saving.",
+    "description": "Warning banner for browsers that cannot write to files directly (Firefox, Safari). \"Save\" refers to the Save button; Chrome and Edge are browser names (keep them)."
+  },
+  "new": {
+    "message": "New",
+    "description": "Top-bar button: create a new empty document in a new tab."
+  },
+  "open": {
+    "message": "Open",
+    "description": "Top-bar button: open one or more Markdown files."
+  },
+  "save": {
+    "message": "Save",
+    "description": "Top-bar button: save the current document to its file."
+  },
+  "saveAs": {
+    "message": "Save as",
+    "description": "Top-bar button: save the current document under a new file name."
+  },
+  "undo": {
+    "message": "↶ Undo",
+    "description": "Top-bar button with a leading arrow symbol (keep the symbol). Undo the last change."
+  },
+  "redo": {
+    "message": "↷ Redo",
+    "description": "Top-bar button with a leading arrow symbol (keep the symbol). Redo an undone change."
+  },
+  "undoTitle": {
+    "message": "Undo (Ctrl+Z)",
+    "description": "Tooltip of the undo button, including the keyboard shortcut. Use the local name of the Ctrl key."
+  },
+  "redoTitle": {
+    "message": "Redo (Ctrl+Y / Ctrl+Shift+Z)",
+    "description": "Tooltip of the redo button, including the keyboard shortcuts. Use the local name of the Ctrl key."
+  },
+  "lc": {
+    "message": "Lowercase keys",
+    "description": "Checkbox label. When ticked, newly added frontmatter field names are written in lowercase. \"Keys\" means the field names."
+  },
+  "lcTitle": {
+    "message": "Create new field names in lowercase (tags: instead of Tags:)",
+    "description": "Tooltip of the lowercase checkbox. \"tags:\" and \"Tags:\" are literal examples of metadata keys; do not translate them."
+  },
+  "addField": {
+    "message": "+ Field",
+    "description": "Button that opens the add-field menu. Keep the leading \"+\"."
+  },
+  "keyPh": {
+    "message": "Enter field name, then Enter",
+    "description": "Placeholder in the text box for typing a new frontmatter field name. \"Enter\" refers to the Enter key."
+  },
+  "emptyHint": {
+    "message": "No frontmatter yet. Add one with “+ Field” or type <code>tags:</code> at the start of the text on the right.",
+    "description": "Hint shown when the document has no frontmatter yet. Contains the HTML tag <code>…</code> around the literal text \"tags:\"; keep the tag and do not translate \"tags:\". The quoted button name must match the translation of addField."
+  },
+  "edPh": {
+    "message": "Type Markdown here, or open / drop a file …",
+    "description": "Placeholder of the empty Markdown editor."
+  },
+  "untitled": {
+    "message": "untitled.md",
+    "description": "File name of a new, unsaved document. Keep the .md extension."
+  },
+  "today": {
+    "message": "today",
+    "description": "Quick-fill button on Date/Modified fields: inserts today's date (YYYY-MM-DD). Very short."
+  },
+  "fromTitle": {
+    "message": "from Title",
+    "description": "Quick-fill button on the Slug field: generates the slug from the Title field. Short. \"Title\" is the literal field name."
+  },
+  "removeField": {
+    "message": "Remove field",
+    "description": "Tooltip of the × button that removes a frontmatter field."
+  },
+  "closeTab": {
+    "message": "Close tab",
+    "description": "Tooltip of the × button on a tab."
+  },
+  "newTab": {
+    "message": "New tab",
+    "description": "Tooltip of the + button after the last tab."
+  },
+  "confirmClose": {
+    "message": "“$NAME$” has unsaved changes. Close anyway?",
+    "description": "Confirmation dialog when closing a tab that has unsaved changes. $NAME$ is replaced by the file name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "post.md"
+      }
+    }
+  },
+  "noTitle": {
+    "message": "No Title field with content",
+    "description": "Status message: generating a slug needs a Title field with content. \"Title\" is the literal field name."
+  },
+  "badKey": {
+    "message": "Invalid field name",
+    "description": "Status message: the entered field name has forbidden characters (allowed: letters, digits, underscore, hyphen)."
+  },
+  "keyExists": {
+    "message": "Field already exists",
+    "description": "Status message: a field with that name already exists, so the existing one is focused."
+  },
+  "openFailed": {
+    "message": "Open failed: ",
+    "description": "Start of an error message. The system error text is appended directly after it, so keep the trailing colon and space."
+  },
+  "saveFailed": {
+    "message": "Save failed: ",
+    "description": "Start of an error message. The system error text is appended directly after it, so keep the trailing colon and space."
+  },
+  "saved": {
+    "message": "Saved",
+    "description": "Short status message after saving to the file."
+  },
+  "downloaded": {
+    "message": "Downloaded",
+    "description": "Short status message after the file was downloaded (browsers without direct save)."
+  },
+  "tbBold": {
+    "message": "Bold (Ctrl+B)",
+    "description": "Tooltip of the bold button, including the keyboard shortcut."
+  },
+  "tbItalic": {
+    "message": "Italic (Ctrl+I)",
+    "description": "Tooltip of the italic button, including the keyboard shortcut."
+  },
+  "tbStrike": {
+    "message": "Strikethrough",
+    "description": "Tooltip of the strikethrough button."
+  },
+  "tbH1": {
+    "message": "Heading 1",
+    "description": "Tooltip: heading level 1."
+  },
+  "tbH2": {
+    "message": "Heading 2",
+    "description": "Tooltip: heading level 2."
+  },
+  "tbH3": {
+    "message": "Heading 3",
+    "description": "Tooltip: heading level 3."
+  },
+  "tbUl": {
+    "message": "Bullet list",
+    "description": "Tooltip: bullet list."
+  },
+  "tbOl": {
+    "message": "Numbered list",
+    "description": "Tooltip: numbered list."
+  },
+  "tbQuote": {
+    "message": "Quote",
+    "description": "Tooltip: block quote."
+  },
+  "tbCode": {
+    "message": "Inline code",
+    "description": "Tooltip: inline code."
+  },
+  "tbCodeBlock": {
+    "message": "Code block",
+    "description": "Tooltip: fenced code block."
+  },
+  "tbLink": {
+    "message": "Link (Ctrl+K)",
+    "description": "Tooltip of the insert-link button, including the keyboard shortcut."
+  },
+  "tbImage": {
+    "message": "Insert image",
+    "description": "Tooltip of the insert-image button."
+  },
+  "phText": {
+    "message": "text",
+    "description": "Placeholder text inserted when formatting with nothing selected (e.g. between the ** of bold). Short, one word."
+  },
+  "phAlt": {
+    "message": "alt text",
+    "description": "Placeholder for the alternative text of an inserted image. Short."
+  },
+  "langName": {
+    "message": "English",
+    "description": "Name of this language written in that language itself (endonym), shown in the language drop-down. Examples: Deutsch, English, Français."
+  },
+  "langTitle": {
+    "message": "Language",
+    "description": "Tooltip of the language drop-down in the top bar."
+  },
+  "frontmatter": {
+    "message": "Frontmatter",
+    "description": "Heading of the side panel that lists the metadata fields at the top of the file. \"Frontmatter\" is the technical term; translate only if a common local term exists."
+  },
+  "textDirection": {
+    "message": "ltr",
+    "description": "Text direction of this language. Enter exactly \"ltr\" (left-to-right) or \"rtl\" (right-to-left). Not a sentence."
+  },
+  "loadLang": {
+    "message": "Load language file …",
+    "description": "Last entry of the language drop-down. Opens a file dialog to load a translation file (JSON) without rebuilding the app."
+  },
+  "packLoaded": {
+    "message": "Language file loaded: $LANG$",
+    "description": "Status message after a language file was loaded. $LANG$ is replaced by the language name.",
+    "placeholders": {
+      "lang": {
+        "content": "$1",
+        "example": "Français"
+      }
+    }
+  },
+  "packInvalid": {
+    "message": "Not a valid language file",
+    "description": "Error status message: the chosen file is not a usable translation file."
+  },
+  "packCodePrompt": {
+    "message": "Language code for this file (e.g. fr or pt-BR):",
+    "description": "Prompt asking for the language code of a loaded translation file. Keep the examples (fr, pt-BR)."
+  }
+}

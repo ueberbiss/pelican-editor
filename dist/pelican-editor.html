@@ -1,0 +1,873 @@
+<!doctype html>
+<!-- GENERATED from src/pelican-editor.src.html and _locales/ by build.mjs. Edit those, not this file. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pelican MD Editor</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --text:#1c2330; --muted:#6b7686; --line:#dfe3ea;
+    --accent:#2f6fed; --accent-ink:#ffffff; --chip:#eef1f6; --danger:#d0443e;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#14171c; --panel:#1b2027; --text:#e6e9ef; --muted:#8d97a6; --line:#2c333d;
+      --accent:#5b92ff; --accent-ink:#0b1220; --chip:#252c36; --danger:#ff7a73;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    display:flex;flex-direction:column;background:var(--bg);color:var(--text);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  button{
+    font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:5px 12px;cursor:pointer;
+  }
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+  .bar{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .brand{font-weight:700;margin-right:6px}
+  .grow{flex:1}
+  #fname{font-family:var(--mono);color:var(--muted)}
+  #dirty{color:var(--accent);font-size:18px;line-height:1;visibility:hidden}
+  #dirty.on{visibility:visible}
+  #status{color:var(--muted);min-width:8em;text-align:right}
+  #status.err{color:var(--danger)}
+  .chk{display:flex;align-items:center;gap:4px;color:var(--muted);cursor:pointer}
+  #banner{
+    background:#fff4d6;color:#5c4400;padding:6px 12px;border-bottom:1px solid #ecd48a;font-size:13px;
+  }
+  @media (prefers-color-scheme:dark){#banner{background:#3a3115;color:#f0d98a;border-color:#6b5a21}}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(300px,420px) 1fr}
+  aside{
+    background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px;
+  }
+  .side-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;position:relative}
+  .side-head h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0}
+  #pop{
+    position:absolute;right:0;top:34px;width:340px;max-width:calc(100vw - 40px);z-index:10;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);
+  }
+  #pop[hidden]{display:none}
+  #newkey{
+    width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;
+    background:var(--bg);color:var(--text);font:inherit;
+  }
+  #chips,.quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .chip{
+    background:var(--chip);border:1px solid transparent;border-radius:999px;padding:2px 10px;
+    font-size:12px;font-family:var(--mono);
+  }
+  .chip:hover{border-color:var(--accent)}
+  .field{margin-bottom:12px}
+  .fhead{display:flex;align-items:center;justify-content:space-between}
+  .fkey{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent)}
+  .icon{border:none;background:none;color:var(--muted);padding:0 6px;font-size:18px;line-height:1}
+  .icon:hover{color:var(--danger)}
+  .field textarea{
+    width:100%;resize:none;overflow:hidden;margin-top:3px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);
+    font:13px/1.4 var(--mono);
+  }
+  .field textarea:focus,#newkey:focus,#ed:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  #empty-hint{color:var(--muted);font-size:13px}
+  main > section{display:flex;flex-direction:column;min-height:0;min-width:0}
+  #toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+  #toolbar button{min-width:32px;padding:3px 8px;font:13px var(--mono)}
+  #toolbar .sep{width:1px;align-self:stretch;margin:2px 4px;background:var(--line)}
+  #tabs{display:flex;align-items:stretch;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line)}
+  .tab{
+    display:flex;align-items:center;gap:6px;padding:6px 8px 6px 12px;max-width:240px;flex:0 0 auto;
+    border-right:1px solid var(--line);cursor:pointer;color:var(--muted);
+  }
+  .tab.on{background:var(--bg);color:var(--text);box-shadow:inset 0 -2px var(--accent)}
+  .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:13px var(--mono)}
+  .tdot{color:var(--accent);font-size:14px;line-height:1}
+  #tab-new{padding:0 14px;font-size:20px}
+  #ed{
+    width:100%;flex:1;min-height:0;resize:none;border:none;padding:16px 20px;background:var(--bg);color:var(--text);
+    font:14px/1.55 var(--mono);tab-size:2;
+  }
+  @media (max-width:800px){
+    main{grid-template-columns:1fr;grid-template-rows:minmax(0,40vh) 1fr}
+    aside{border-right:none;border-bottom:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+
+<div id="banner" hidden data-i18n="banner"></div>
+
+<header class="bar">
+  <span class="brand">Pelican MD</span>
+  <button id="btn-new" data-i18n="new"></button>
+  <button id="btn-open" data-i18n="open"></button>
+  <button id="btn-save" class="primary" data-i18n="save"></button>
+  <button id="btn-saveas" data-i18n="saveAs"></button>
+  <button id="btn-undo" data-i18n="undo" data-i18n-title="undoTitle" disabled></button>
+  <button id="btn-redo" data-i18n="redo" data-i18n-title="redoTitle" disabled></button>
+  <span id="fname">unbenannt.md</span><span id="dirty">●</span>
+  <span class="grow"></span>
+  <select id="ui-lang" data-i18n-title="langTitle"></select>
+  <label class="chk" data-i18n-title="lcTitle">
+    <input type="checkbox" id="lc"> <span data-i18n="lc"></span>
+  </label>
+  <span id="status"></span>
+</header>
+
+<nav id="tabs"></nav>
+
+<main>
+  <aside>
+    <div class="side-head">
+      <h2 data-i18n="frontmatter"></h2>
+      <button id="btn-add" data-i18n="addField"></button>
+      <div id="pop" hidden>
+        <input id="newkey" data-i18n-placeholder="keyPh" autocomplete="off" spellcheck="false">
+        <div id="chips"></div>
+      </div>
+    </div>
+    <div id="fields"></div>
+    <p id="empty-hint" data-i18n-html="emptyHint"></p>
+  </aside>
+  <section>
+    <div id="toolbar" role="toolbar">
+      <button data-act="bold" data-i18n-title="tbBold"><b>B</b></button>
+      <button data-act="italic" data-i18n-title="tbItalic"><i>I</i></button>
+      <button data-act="strike" data-i18n-title="tbStrike"><s>S</s></button>
+      <span class="sep"></span>
+      <button data-act="h1" data-i18n-title="tbH1">H1</button>
+      <button data-act="h2" data-i18n-title="tbH2">H2</button>
+      <button data-act="h3" data-i18n-title="tbH3">H3</button>
+      <span class="sep"></span>
+      <button data-act="ul" data-i18n-title="tbUl">•</button>
+      <button data-act="ol" data-i18n-title="tbOl">1.</button>
+      <button data-act="quote" data-i18n-title="tbQuote">&gt;</button>
+      <span class="sep"></span>
+      <button data-act="code" data-i18n-title="tbCode">&lt;/&gt;</button>
+      <button data-act="codeblock" data-i18n-title="tbCodeBlock">{ }</button>
+      <span class="sep"></span>
+      <button data-act="link" data-i18n-title="tbLink">🔗</button>
+      <button data-act="image" data-i18n-title="tbImage">🖼</button>
+    </div>
+    <textarea id="ed" dir="auto" spellcheck="false" data-i18n-placeholder="edPh"></textarea>
+  </section>
+</main>
+
+<input type="file" id="fallback-input" accept=".md,.markdown,.txt" multiple hidden>
+<input type="file" id="pack-input" accept=".json,application/json" hidden>
+
+<script>
+(() => {
+'use strict';
+
+// <pure>
+const KEY_RE = /^ {0,3}([\p{L}\p{N}_-]+):[ \t]*(.*)$/u;
+const CONT_RE = /^(?: {4}|\t)/;
+
+// Splits text into frontmatter fields and body (Pelican/python-markdown meta rules).
+function parse(text) {
+  const lines = text.split('\n');
+  const fields = [];
+  let i = 0;
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') break;
+    const m = KEY_RE.exec(line);
+    if (m) { fields.push({ key: m[1], value: m[2].replace(/\s+$/, '') }); continue; }
+    if (CONT_RE.test(line) && fields.length) {
+      fields[fields.length - 1].value += '\n' + line.trim();
+      continue;
+    }
+    break;
+  }
+  let bodyLine = 0;
+  if (fields.length) {
+    bodyLine = (i < lines.length && lines[i].trim() === '') ? i + 1 : i;
+  }
+  return { fields, body: lines.slice(bodyLine).join('\n') };
+}
+
+function serialize(fields, body) {
+  if (!fields.length) {
+    // keep a body that starts with "foo: bar" from turning into a field
+    return KEY_RE.test(body.split('\n')[0]) ? '\n' + body : body;
+  }
+  const head = fields.map(f => {
+    const parts = f.value.replace(/\s+$/, '').split('\n');
+    let s = f.key + ':' + (parts[0] ? ' ' + parts[0] : '');
+    for (let k = 1; k < parts.length; k++) s += '\n    ' + parts[k];
+    return s;
+  }).join('\n');
+  return head + '\n\n' + body;
+}
+
+function slugify(s) {
+  return s.toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+// </pure>
+
+const $ = id => document.getElementById(id);
+const ed = $('ed'), box = $('fields'), pop = $('pop'), newkey = $('newkey'), chips = $('chips');
+
+const KNOWN = [
+  'Title','Date','Modified','Status','Slug','Author','Authors','Lang','Category','Tags','Keywords',
+  'Summary','Description','Template','Save_as','URL','Series','Score','Heat','Kcal','Fat','Carbs',
+  'Protein','Salt','Product','Brand','Importer','Weight','Cooktime','Water','Shop','Vegan',
+  'Allergens','Ingredients','Price','Buy_amazon','Buy_asia','Buy_rewe'
+];
+const MDTYPE = { description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown'], 'text/plain': ['.txt'] } };
+const hasFS = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
+
+// Translations live in _locales/<code>/messages.json (WebExtension format) and are inlined here by build.mjs.
+// Do not edit this line by hand; see README.md ("Adding a language").
+const LOCALES = {"en":{"banner":{"message":"This browser cannot save directly to files. “Save” downloads the file instead. Use Chrome or Edge for direct saving."},"new":{"message":"New"},"open":{"message":"Open"},"save":{"message":"Save"},"saveAs":{"message":"Save as"},"undo":{"message":"↶ Undo"},"redo":{"message":"↷ Redo"},"undoTitle":{"message":"Undo (Ctrl+Z)"},"redoTitle":{"message":"Redo (Ctrl+Y / Ctrl+Shift+Z)"},"lc":{"message":"Lowercase keys"},"lcTitle":{"message":"Create new field names in lowercase (tags: instead of Tags:)"},"addField":{"message":"+ Field"},"keyPh":{"message":"Enter field name, then Enter"},"emptyHint":{"message":"No frontmatter yet. Add one with “+ Field” or type \u003ccode>tags:\u003c/code> at the start of the text on the right."},"edPh":{"message":"Type Markdown here, or open / drop a file …"},"untitled":{"message":"untitled.md"},"today":{"message":"today"},"fromTitle":{"message":"from Title"},"removeField":{"message":"Remove field"},"closeTab":{"message":"Close tab"},"newTab":{"message":"New tab"},"confirmClose":{"message":"“$NAME$” has unsaved changes. Close anyway?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"No Title field with content"},"badKey":{"message":"Invalid field name"},"keyExists":{"message":"Field already exists"},"openFailed":{"message":"Open failed: "},"saveFailed":{"message":"Save failed: "},"saved":{"message":"Saved"},"downloaded":{"message":"Downloaded"},"tbBold":{"message":"Bold (Ctrl+B)"},"tbItalic":{"message":"Italic (Ctrl+I)"},"tbStrike":{"message":"Strikethrough"},"tbH1":{"message":"Heading 1"},"tbH2":{"message":"Heading 2"},"tbH3":{"message":"Heading 3"},"tbUl":{"message":"Bullet list"},"tbOl":{"message":"Numbered list"},"tbQuote":{"message":"Quote"},"tbCode":{"message":"Inline code"},"tbCodeBlock":{"message":"Code block"},"tbLink":{"message":"Link (Ctrl+K)"},"tbImage":{"message":"Insert image"},"phText":{"message":"text"},"phAlt":{"message":"alt text"},"langName":{"message":"English"},"langTitle":{"message":"Language"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Load language file …"},"packLoaded":{"message":"Language file loaded: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Not a valid language file"},"packCodePrompt":{"message":"Language code for this file (e.g. fr or pt-BR):"}},"de":{"banner":{"message":"Dieser Browser kann nicht direkt in Dateien speichern. „Speichern\" lädt die Datei stattdessen herunter. Für direktes Speichern Chrome oder Edge nutzen."},"new":{"message":"Neu"},"open":{"message":"Öffnen"},"save":{"message":"Speichern"},"saveAs":{"message":"Speichern unter"},"undo":{"message":"↶ Rückgängig"},"redo":{"message":"↷ Wiederholen"},"undoTitle":{"message":"Rückgängig (Strg+Z)"},"redoTitle":{"message":"Wiederholen (Strg+Y / Strg+Shift+Z)"},"lc":{"message":"Keys klein"},"lcTitle":{"message":"Neue Feldnamen in Kleinbuchstaben anlegen (tags: statt Tags:)"},"addField":{"message":"+ Feld"},"keyPh":{"message":"Feldname eingeben, Enter"},"emptyHint":{"message":"Noch kein Frontmatter. Mit „+ Feld\" anlegen oder rechts am Textanfang \u003ccode>tags:\u003c/code> tippen."},"edPh":{"message":"Markdown hier eingeben oder Datei öffnen / hierher ziehen …"},"untitled":{"message":"unbenannt.md"},"today":{"message":"heute"},"fromTitle":{"message":"aus Title"},"removeField":{"message":"Feld entfernen"},"closeTab":{"message":"Tab schließen"},"newTab":{"message":"Neuer Tab"},"confirmClose":{"message":"„$NAME$“ hat ungespeicherte Änderungen. Trotzdem schließen?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"Kein Title-Feld mit Inhalt"},"badKey":{"message":"Ungültiger Feldname"},"keyExists":{"message":"Feld existiert schon"},"openFailed":{"message":"Öffnen fehlgeschlagen: "},"saveFailed":{"message":"Speichern fehlgeschlagen: "},"saved":{"message":"Gespeichert"},"downloaded":{"message":"Heruntergeladen"},"tbBold":{"message":"Fett (Strg+B)"},"tbItalic":{"message":"Kursiv (Strg+I)"},"tbStrike":{"message":"Durchgestrichen"},"tbH1":{"message":"Überschrift 1"},"tbH2":{"message":"Überschrift 2"},"tbH3":{"message":"Überschrift 3"},"tbUl":{"message":"Aufzählung"},"tbOl":{"message":"Nummerierte Liste"},"tbQuote":{"message":"Zitat"},"tbCode":{"message":"Inline-Code"},"tbCodeBlock":{"message":"Codeblock"},"tbLink":{"message":"Link (Strg+K)"},"tbImage":{"message":"Bild einfügen"},"phText":{"message":"Text"},"phAlt":{"message":"Alt-Text"},"langName":{"message":"Deutsch"},"langTitle":{"message":"Sprache"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Sprachdatei laden …"},"packLoaded":{"message":"Sprachdatei geladen: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Keine gültige Sprachdatei"},"packCodePrompt":{"message":"Sprachcode für diese Datei (z. B. fr oder pt-BR):"}}};
+const I18N = {};
+Object.keys(LOCALES).forEach(c => { I18N[c] = flattenPack(LOCALES[c]); });
+const PACK_KEY = 'pme.packs';
+
+// Accepts messages.json ({key:{message,placeholders}}) or a flat {key:"text"} object.
+// Chrome-style placeholders ($NAME$) become {name}; "$$" is a literal dollar sign.
+function flattenPack(obj) {
+  const out = {};
+  if (!obj || typeof obj !== 'object') return out;
+  Object.keys(obj).forEach(k => {
+    const v = obj[k];
+    if (typeof v === 'string') { out[k] = v; return; }
+    if (!v || typeof v.message !== 'string') return;
+    const ph = {};
+    Object.keys(v.placeholders || {}).forEach(n => { ph[n.toLowerCase()] = true; });
+    out[k] = v.message.replace(/\$([A-Za-z0-9_@]+)\$|\$\$/g, (m, n) => {
+      if (!n) return '$';
+      return ph[n.toLowerCase()] ? '{' + n.toLowerCase() + '}' : m;
+    });
+  });
+  return out;
+}
+// Language files the user loaded at runtime (no rebuild needed) override the built-in ones.
+function loadStoredPacks() {
+  let packs = {};
+  try { packs = JSON.parse(lsGet(PACK_KEY) || '{}'); } catch (e) { packs = {}; }
+  Object.keys(packs).forEach(c => { I18N[c] = Object.assign({}, I18N[c] || {}, flattenPack(packs[c])); });
+}
+loadStoredPacks();
+function detectLang() {
+  const saved = lsGet('pme.lang');
+  if (saved && I18N[saved]) return saved;
+  const codes = Object.keys(I18N);
+  const prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || 'en'];
+  for (const p of prefs) {
+    const l = String(p).toLowerCase(), base = l.split('-')[0];
+    const hit = codes.find(c => c.toLowerCase() === l) || codes.find(c => c.split('-')[0].toLowerCase() === base);
+    if (hit) return hit;
+  }
+  return 'en';
+}
+// Inline HTML in translations is limited to a few harmless tags; everything else is shown as text.
+function safeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&lt;(\/?)(code|b|i|kbd)&gt;/g, '<$1$2>');
+}
+let uiLang = detectLang();
+function tr(k, v) {
+  let s = (I18N[uiLang] && I18N[uiLang][k]) || I18N.en[k] || k;
+  if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]);
+  return s;
+}
+function applyLang() {
+  document.documentElement.lang = uiLang;
+  document.documentElement.dir = tr('textDirection') === 'rtl' ? 'rtl' : 'ltr';
+  fillLangSelect();
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = safeHtml(tr(el.dataset.i18nHtml)); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = tr(el.dataset.i18nPlaceholder); });
+  ui(); renderFields();
+}
+
+let fields = [], body = '';
+let handle = null, eol = '\n', dirty = false, fname = '';
+// undo history: snapshots of the full text (native undo breaks when the form rewrites the textarea)
+let hist = [''], hIdx = 0, lastKind = '', lastT = 0, savedText = '';
+let docs = [], active = -1; // open tabs
+
+// ---------- helpers ----------
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+function today() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function autosize(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }
+let statusTimer;
+function say(msg, isErr) {
+  const s = $('status');
+  s.textContent = msg; s.className = isErr ? 'err' : '';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { s.textContent = ''; }, 3500);
+}
+function customKeys() {
+  try { return JSON.parse(lsGet('pme.keys') || '[]'); } catch (e) { return []; }
+}
+function rememberKeys() {
+  const known = new Set(KNOWN.map(k => k.toLowerCase()));
+  const custom = customKeys();
+  const have = new Set(custom.map(k => k.toLowerCase()));
+  fields.forEach(f => {
+    const l = f.key.toLowerCase();
+    if (!known.has(l) && !have.has(l)) { custom.push(f.key); have.add(l); }
+  });
+  lsSet('pme.keys', JSON.stringify(custom.slice(-100)));
+}
+function ui() {
+  $('fname').textContent = fname;
+  $('dirty').className = dirty ? 'on' : '';
+  document.title = (dirty ? '● ' : '') + fname + ' – Pelican MD';
+  renderTabs();
+}
+function setDirty(v) { dirty = v; ui(); }
+
+// ---------- form rendering ----------
+function quickFor(key) {
+  switch (key.toLowerCase()) {
+    case 'status': return [['draft', 'draft'], ['published', 'published'], ['hidden', 'hidden']];
+    case 'lang': return [['de', 'de'], ['en', 'en']];
+    case 'date': case 'modified': return [[tr('today'), today()]];
+    case 'slug': return [[tr('fromTitle'), '__slug__']];
+    default: return [];
+  }
+}
+
+function renderFields() {
+  box.textContent = '';
+  $('empty-hint').hidden = fields.length > 0;
+  fields.forEach((f, i) => {
+    const row = document.createElement('div'); row.className = 'field';
+    const head = document.createElement('div'); head.className = 'fhead';
+    const lab = document.createElement('span'); lab.className = 'fkey'; lab.textContent = f.key + ':';
+    const del = document.createElement('button'); del.className = 'icon'; del.title = tr('removeField');
+    del.textContent = '×'; del.dataset.del = i;
+    head.append(lab, del);
+    const ta = document.createElement('textarea');
+    ta.rows = 1; ta.dir = 'auto'; ta.value = f.value; ta.dataset.idx = i; ta.spellcheck = false;
+    ta.setAttribute('aria-label', f.key);
+    row.append(head, ta);
+    const q = quickFor(f.key);
+    if (q.length) {
+      const qs = document.createElement('div'); qs.className = 'quick';
+      q.forEach(([label, val]) => {
+        const b = document.createElement('button'); b.className = 'chip';
+        b.textContent = label; b.dataset.q = i; b.dataset.v = val;
+        qs.append(b);
+      });
+      row.append(qs);
+    }
+    box.append(row);
+    autosize(ta);
+  });
+}
+
+function commit(kind) {
+  ed.value = serialize(fields, body);
+  record(kind || 'struct');
+  setDirty(ed.value !== savedText);
+  rememberKeys();
+}
+
+// ---------- undo / redo ----------
+function updateHistBtns() {
+  $('btn-undo').disabled = hIdx <= 0;
+  $('btn-redo').disabled = hIdx >= hist.length - 1;
+}
+function resetHistory() {
+  hist = [ed.value]; hIdx = 0; lastKind = ''; savedText = ed.value;
+  updateHistBtns();
+}
+function record(kind) {
+  const t = ed.value;
+  if (t === hist[hIdx]) return;
+  const now = Date.now();
+  if (kind === 'type' && lastKind === 'type' && now - lastT < 700 && hIdx === hist.length - 1 && hIdx > 0) {
+    hist[hIdx] = t; // coalesce a typing burst into one undo step
+  } else {
+    hist.splice(hIdx + 1);
+    hist.push(t); hIdx = hist.length - 1;
+    if (hist.length > 300) { hist.shift(); hIdx--; }
+  }
+  lastKind = kind; lastT = now;
+  updateHistBtns();
+}
+function restore(t) {
+  const old = ed.value;
+  ed.value = t;
+  const p = parse(t);
+  body = p.body; fields = p.fields;
+  renderFields(); rememberKeys();
+  setDirty(t !== savedText); updateHistBtns();
+  let k = 0;
+  while (k < old.length && k < t.length && old[k] === t[k]) k++;
+  ed.focus(); ed.setSelectionRange(k, k);
+}
+function undo() { if (hIdx > 0) { hIdx--; lastKind = ''; restore(hist[hIdx]); } }
+function redo() { if (hIdx < hist.length - 1) { hIdx++; lastKind = ''; restore(hist[hIdx]); } }
+function markSaved() { savedText = ed.value; setDirty(false); }
+
+function applyParsed(nf) {
+  const same = nf.length === fields.length && nf.every((f, i) => f.key === fields[i].key);
+  fields = nf;
+  if (same) {
+    box.querySelectorAll('textarea').forEach((ta, i) => {
+      if (ta.value !== fields[i].value) { ta.value = fields[i].value; autosize(ta); }
+    });
+  } else {
+    renderFields();
+    rememberKeys();
+  }
+}
+
+function refreshAll() {
+  const p = parse(ed.value);
+  body = p.body; fields = p.fields;
+  renderFields(); rememberKeys(); ui();
+}
+
+// ---------- form events ----------
+box.addEventListener('input', e => {
+  const ta = e.target;
+  if (ta.tagName !== 'TEXTAREA') return;
+  fields[+ta.dataset.idx].value = ta.value;
+  commit('type'); autosize(ta);
+});
+box.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' && e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    ed.focus();
+  }
+});
+box.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.del !== undefined) {
+    fields.splice(+b.dataset.del, 1);
+    commit(); renderFields();
+  } else if (b.dataset.q !== undefined) {
+    const i = +b.dataset.q;
+    let v = b.dataset.v;
+    if (v === '__slug__') {
+      const t = fields.find(f => f.key.toLowerCase() === 'title');
+      if (!t || !t.value.trim()) { say(tr('noTitle'), true); return; }
+      const prefix = (fields[i].value.match(/^\d+-/) || [''])[0];
+      v = prefix + slugify(t.value);
+    }
+    fields[i].value = v;
+    const ta = box.querySelectorAll('textarea')[i];
+    ta.value = v; autosize(ta);
+    commit();
+  }
+});
+function editorChanged(kind) {
+  const p = parse(ed.value);
+  body = p.body;
+  applyParsed(p.fields);
+  record(kind);
+  setDirty(ed.value !== savedText);
+}
+ed.addEventListener('input', () => editorChanged('type'));
+window.addEventListener('resize', () => box.querySelectorAll('textarea').forEach(autosize));
+
+// ---------- add field ----------
+function renderChips() {
+  const have = new Set(fields.map(f => f.key.toLowerCase()));
+  const seen = new Set();
+  chips.textContent = '';
+  [...KNOWN, ...customKeys()].forEach(k => {
+    const l = k.toLowerCase();
+    if (have.has(l) || seen.has(l)) return;
+    seen.add(l);
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = k; b.dataset.k = k;
+    chips.append(b);
+  });
+}
+function openPop() { pop.hidden = false; renderChips(); newkey.value = ''; newkey.focus(); }
+function closePop() { pop.hidden = true; }
+
+function addField(raw) {
+  const name = raw.trim().replace(/:.*$/, '').replace(/\s+/g, '_');
+  if (!name) return;
+  if (!/^[\p{L}\p{N}_-]+$/u.test(name)) { say(tr('badKey'), true); return; }
+  closePop();
+  const idx = fields.findIndex(f => f.key.toLowerCase() === name.toLowerCase());
+  if (idx >= 0) { box.querySelectorAll('textarea')[idx].focus(); say(tr('keyExists')); return; }
+  fields.push({ key: $('lc').checked ? name.toLowerCase() : name, value: '' });
+  commit(); renderFields();
+  const tas = box.querySelectorAll('textarea');
+  tas[tas.length - 1].focus();
+}
+$('btn-add').addEventListener('click', e => { e.stopPropagation(); pop.hidden ? openPop() : closePop(); });
+chips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) addField(b.dataset.k); });
+newkey.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addField(newkey.value); }
+  if (e.key === 'Escape') closePop();
+});
+document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) closePop(); });
+
+// ---------- file handling ----------
+// The globals handle/eol/fname/savedText/hist/hIdx always describe the ACTIVE tab;
+// stash() copies them into docs[active], activate() loads another doc into them.
+function newDoc(o) {
+  return Object.assign({ handle: null, eol: '\n', fname: tr('untitled'), text: '', savedText: '',
+    hist: [''], hIdx: 0, selS: 0, selE: 0, scroll: 0 }, o);
+}
+function stash() {
+  if (active < 0) return;
+  Object.assign(docs[active], {
+    text: ed.value, handle, eol, fname, savedText, hist, hIdx,
+    selS: ed.selectionStart, selE: ed.selectionEnd, scroll: ed.scrollTop
+  });
+}
+function activate(i) {
+  if (i !== active) stash();
+  active = i;
+  const d = docs[i];
+  handle = d.handle; eol = d.eol; fname = d.fname; savedText = d.savedText;
+  hist = d.hist; hIdx = d.hIdx; lastKind = '';
+  ed.value = d.text;
+  const p = parse(d.text);
+  body = p.body; fields = p.fields;
+  renderFields(); rememberKeys(); updateHistBtns();
+  setDirty(ed.value !== savedText);
+  ed.setSelectionRange(d.selS, d.selE); ed.scrollTop = d.scroll;
+  ed.focus();
+}
+function renderTabs() {
+  const nav = $('tabs');
+  nav.textContent = '';
+  docs.forEach((d, i) => {
+    const isA = i === active;
+    const name = isA ? fname : d.fname;
+    const isDirty = isA ? dirty : d.text !== d.savedText;
+    const t = document.createElement('div');
+    t.className = 'tab' + (isA ? ' on' : ''); t.dataset.i = i; t.title = name;
+    const n = document.createElement('span'); n.className = 'tname'; n.textContent = name;
+    const dot = document.createElement('span'); dot.className = 'tdot'; dot.textContent = '●';
+    dot.style.visibility = isDirty ? 'visible' : 'hidden';
+    const x = document.createElement('button'); x.className = 'icon'; x.textContent = '×';
+    x.title = tr('closeTab'); x.dataset.close = i;
+    t.append(n, dot, x);
+    nav.append(t);
+  });
+  const plus = document.createElement('button');
+  plus.id = 'tab-new'; plus.className = 'icon'; plus.textContent = '+'; plus.title = tr('newTab');
+  nav.append(plus);
+}
+function addDoc(text, h, n) {
+  stash();
+  const t = text.replace(/^﻿/, '').replace(/\r\n/g, '\n');
+  const d = newDoc({ handle: h, eol: text.includes('\r\n') ? '\r\n' : '\n', fname: n, text: t, savedText: t, hist: [t] });
+  const cur = docs[active];
+  if (docs.length === 1 && cur && !cur.handle && cur.text === '' && cur.savedText === '') {
+    docs = [d]; active = -1; activate(0); // replace the untouched empty tab
+  } else {
+    docs.push(d); activate(docs.length - 1);
+  }
+}
+async function openHandle(h) {
+  stash();
+  for (let i = 0; i < docs.length; i++) {
+    try { if (docs[i].handle && await docs[i].handle.isSameEntry(h)) { activate(i); return; } } catch (e) { /* ignore */ }
+  }
+  const f = await h.getFile();
+  addDoc(await f.text(), h, f.name);
+}
+function closeDoc(i) {
+  stash();
+  const d = docs[i];
+  if (d.text !== d.savedText && !confirm(tr('confirmClose', { name: d.fname }))) return;
+  docs.splice(i, 1);
+  if (!docs.length) { docs.push(newDoc()); active = -1; activate(0); return; }
+  if (i === active) { active = -1; activate(Math.min(i, docs.length - 1)); }
+  else { if (i < active) active--; renderTabs(); }
+}
+function toOut() {
+  const t = ed.value;
+  return eol === '\r\n' ? t.replace(/\n/g, '\r\n') : t;
+}
+async function writeTo(h) {
+  const w = await h.createWritable();
+  await w.write(toOut());
+  await w.close();
+}
+function download() {
+  const url = URL.createObjectURL(new Blob([toOut()], { type: 'text/markdown;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = fname;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  markSaved(); say(tr('downloaded'));
+}
+
+async function openFile() {
+  if (!hasFS) { $('fallback-input').click(); return; }
+  try {
+    const hs = await window.showOpenFilePicker({ types: [MDTYPE], multiple: true });
+    for (const h of hs) await openHandle(h);
+  } catch (e) { if (e.name !== 'AbortError') say(tr('openFailed') + e.message, true); }
+}
+async function saveAs() {
+  if (!hasFS) { download(); return; }
+  try {
+    const h = await window.showSaveFilePicker({ suggestedName: fname, types: [MDTYPE] });
+    await writeTo(h);
+    handle = h; fname = h.name; markSaved(); say(tr('saved'));
+  } catch (e) { if (e.name !== 'AbortError') say(tr('saveFailed') + e.message, true); }
+}
+async function save() {
+  if (!hasFS) { download(); return; }
+  if (!handle) { await saveAs(); return; }
+  try { await writeTo(handle); markSaved(); say(tr('saved')); }
+  catch (e) { say(tr('saveFailed') + e.message, true); }
+}
+function newFile() {
+  stash();
+  docs.push(newDoc());
+  activate(docs.length - 1);
+}
+
+$('btn-new').addEventListener('click', newFile);
+$('btn-open').addEventListener('click', openFile);
+$('btn-save').addEventListener('click', save);
+$('btn-saveas').addEventListener('click', saveAs);
+$('fallback-input').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  for (const f of files) addDoc(await f.text(), null, f.name);
+});
+$('tabs').addEventListener('click', e => {
+  const c = e.target.closest('[data-close]');
+  if (c) { closeDoc(+c.dataset.close); return; }
+  if (e.target.closest('#tab-new')) { newFile(); return; }
+  const t = e.target.closest('.tab');
+  if (t && +t.dataset.i !== active) activate(+t.dataset.i);
+});
+$('tabs').addEventListener('auxclick', e => {
+  const t = e.button === 1 && e.target.closest('.tab');
+  if (t) { e.preventDefault(); closeDoc(+t.dataset.i); }
+});
+
+$('btn-undo').addEventListener('click', undo);
+$('btn-redo').addEventListener('click', redo);
+// route browser-native undo/redo (menu, shortcuts) to our history
+document.addEventListener('beforeinput', e => {
+  if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
+  else if (e.inputType === 'historyRedo') { e.preventDefault(); redo(); }
+}, true);
+window.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+});
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'o') { e.preventDefault(); openFile(); }
+});
+window.addEventListener('beforeunload', e => {
+  stash();
+  if (docs.some(d => d.text !== d.savedText)) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// drag & drop (handle must be requested synchronously)
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', async e => {
+  e.preventDefault();
+  const items = [...(e.dataTransfer.items || [])].filter(it => it.kind === 'file');
+  const hps = items.map(it => it.getAsFileSystemHandle ? it.getAsFileSystemHandle() : null);
+  const files = [...e.dataTransfer.files];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const h = hps[i] ? await hps[i] : null;
+      if (h && h.kind === 'directory') continue;
+      if (h && h.kind === 'file') await openHandle(h);
+      else await addDoc(await files[i].text(), null, files[i].name);
+    } catch (err) { say(tr('openFailed') + err.message, true); }
+  }
+});
+
+// ---------- formatting toolbar ----------
+// Formatting only ever touches the body: the selection is clamped to the start of the body.
+function sel() {
+  const off = ed.value.length - body.length;
+  return { v: ed.value, off, s: Math.max(ed.selectionStart, off), e: Math.max(ed.selectionEnd, off) };
+}
+function applyEdit(v, s, e) {
+  ed.value = v; ed.focus(); ed.setSelectionRange(s, e);
+  editorChanged('struct'); // own undo step per formatting action
+}
+function lineRange(v, s, e, off) {
+  const a = Math.max(s === 0 ? 0 : v.lastIndexOf('\n', s - 1) + 1, off);
+  const b = (e > s && v[e - 1] === '\n') ? e - 1 : e;
+  let c = v.indexOf('\n', b);
+  if (c < 0) c = v.length;
+  return [a, c];
+}
+function fmtWrap(pre, suf, ph) {
+  let { v, off, s, e } = sel();
+  if (s === e) {
+    applyEdit(v.slice(0, s) + pre + ph + suf + v.slice(e), s + pre.length, s + pre.length + ph.length);
+    return;
+  }
+  while (s < e && /\s/.test(v[s])) s++;      // keep spaces outside the markers
+  while (e > s && /\s/.test(v[e - 1])) e--;
+  if (s === e) return;
+  const inner = v.slice(s, e);
+  if (s - pre.length >= off && v.slice(s - pre.length, s) === pre && v.slice(e, e + suf.length) === suf) {
+    // markers sit right outside the selection: toggle off
+    applyEdit(v.slice(0, s - pre.length) + inner + v.slice(e + suf.length), s - pre.length, e - pre.length);
+  } else if (inner.length >= pre.length + suf.length && inner.startsWith(pre) && inner.endsWith(suf)) {
+    // markers are part of the selection: toggle off
+    const n = inner.slice(pre.length, inner.length - suf.length);
+    applyEdit(v.slice(0, s) + n + v.slice(e), s, s + n.length);
+  } else {
+    applyEdit(v.slice(0, s) + pre + inner + suf + v.slice(e), s + pre.length, s + pre.length + inner.length);
+  }
+}
+function fmtLines(kind) {
+  const { v, off, s, e } = sel();
+  const [a, c] = lineRange(v, s, e, off);
+  const lines = v.slice(a, c).split('\n');
+  const multi = lines.length > 1;
+  const targets = lines.map((l, i) => i).filter(i => !multi || lines[i].trim() !== '');
+  const HEAD = /^#{1,6}[ \t]+/, UL = /^[-*+][ \t]+/, OL = /^\d+\.[ \t]+/, Q = /^>[ \t]?/;
+  const out = lines.slice();
+  if (kind[0] === 'h') {
+    const pre = '#'.repeat(+kind[1]) + ' ';
+    const on = targets.every(i => lines[i].startsWith(pre));
+    targets.forEach(i => { const base = lines[i].replace(HEAD, ''); out[i] = on ? base : pre + base; });
+  } else if (kind === 'ul' || kind === 'ol') {
+    const re = kind === 'ul' ? UL : OL;
+    const on = targets.every(i => re.test(lines[i]));
+    let n = 1;
+    targets.forEach(i => {
+      const base = lines[i].replace(UL, '').replace(OL, '');
+      out[i] = on ? base : (kind === 'ul' ? '- ' : (n++) + '. ') + base;
+    });
+  } else {
+    const on = targets.every(i => Q.test(lines[i]));
+    targets.forEach(i => { out[i] = on ? lines[i].replace(Q, '') : '> ' + lines[i]; });
+  }
+  const block = out.join('\n');
+  applyEdit(v.slice(0, a) + block + v.slice(c), a, a + block.length);
+}
+function fmtCodeBlock() {
+  const { v, off, s, e } = sel();
+  if (s === e) {
+    const lead = (s === off || v[s - 1] === '\n') ? '' : '\n';
+    const pos = s + lead.length + 4;
+    applyEdit(v.slice(0, s) + lead + '```\n\n```' + v.slice(e), pos, pos);
+    return;
+  }
+  const [a, c] = lineRange(v, s, e, off);
+  const block = '```\n' + v.slice(a, c) + '\n```';
+  applyEdit(v.slice(0, a) + block + v.slice(c), a, a + block.length);
+}
+function fmtLink() {
+  const { v, s, e } = sel();
+  const txt = v.slice(s, e);
+  if (/^https?:\/\/\S+$/.test(txt)) { // selected text is a URL: use it as the target
+    const ph = tr('phText');
+    applyEdit(v.slice(0, s) + '[' + ph + '](' + txt + ')' + v.slice(e), s + 1, s + 1 + ph.length);
+    return;
+  }
+  const label = txt || tr('phText');
+  const us = s + label.length + 3;
+  applyEdit(v.slice(0, s) + '[' + label + '](https://)' + v.slice(e), us, us + 8);
+}
+function fmtImage() {
+  const { v, s, e } = sel();
+  const hasSel = s !== e;
+  const alt = hasSel ? v.slice(s, e) : tr('phAlt');
+  const ins = '![' + alt + ']({static}/images/)';
+  const caret = s + ins.length - 1;
+  applyEdit(v.slice(0, s) + ins + v.slice(e), hasSel ? caret : s + 2, hasSel ? caret : s + 2 + alt.length);
+}
+const ACTIONS = {
+  bold: () => fmtWrap('**', '**', tr('phText')),
+  italic: () => fmtWrap('_', '_', tr('phText')),
+  strike: () => fmtWrap('~~', '~~', tr('phText')),
+  h1: () => fmtLines('h1'), h2: () => fmtLines('h2'), h3: () => fmtLines('h3'),
+  ul: () => fmtLines('ul'), ol: () => fmtLines('ol'), quote: () => fmtLines('quote'),
+  code: () => fmtWrap('`', '`', tr('phText')),
+  codeblock: fmtCodeBlock, link: fmtLink, image: fmtImage
+};
+$('toolbar').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+$('toolbar').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (b) ACTIONS[b.dataset.act]();
+});
+window.addEventListener('keydown', e => {
+  if (document.activeElement !== ed || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+  const act = { b: 'bold', i: 'italic', k: 'link' }[e.key.toLowerCase()];
+  if (act) { e.preventDefault(); ACTIONS[act](); }
+});
+
+// ---------- init ----------
+$('lc').checked = lsGet('pme.lc') === '1';
+$('lc').addEventListener('change', () => lsSet('pme.lc', $('lc').checked ? '1' : '0'));
+if (!hasFS) $('banner').hidden = false;
+function fillLangSelect() {
+  const sel = $('ui-lang');
+  sel.textContent = '';
+  Object.keys(I18N).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = I18N[c].langName || c;
+    sel.append(o);
+  });
+  const load = document.createElement('option');
+  load.value = '__load'; load.textContent = tr('loadLang');
+  sel.append(load);
+  sel.value = uiLang;
+}
+$('ui-lang').addEventListener('change', e => {
+  if (e.target.value === '__load') { e.target.value = uiLang; $('pack-input').click(); return; }
+  uiLang = e.target.value; lsSet('pme.lang', uiLang); applyLang();
+});
+$('pack-input').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const flat = flattenPack(JSON.parse(await f.text()));
+    if (!Object.keys(flat).length) throw new Error('empty');
+    const guess = (f.name.replace(/\.json$/i, '').match(/(?:^|[._-])([a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?)$/i) || [])[1] || '';
+    let code = (prompt(tr('packCodePrompt'), guess) || '').trim().replace('_', '-');
+    if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(code)) return;
+    const parts = code.split('-');
+    code = parts[0].toLowerCase() + (parts[1] ? '-' + (parts[1].length === 2 ? parts[1].toUpperCase() : parts[1]) : '');
+    let packs = {};
+    try { packs = JSON.parse(lsGet(PACK_KEY) || '{}'); } catch (err) { packs = {}; }
+    packs[code] = flat;
+    lsSet(PACK_KEY, JSON.stringify(packs));
+    I18N[code] = Object.assign({}, I18N[code] || {}, flat);
+    uiLang = code; lsSet('pme.lang', code);
+    applyLang();
+    say(tr('packLoaded', { lang: I18N[code].langName || code }));
+  } catch (err) { say(tr('packInvalid'), true); }
+});
+docs = [newDoc()];
+activate(0);
+applyLang();
+})();
+</script>
+</body>
+</html>

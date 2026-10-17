@@ -1,0 +1,170 @@
+{
+  "banner": {
+    "message": "Dieser Browser kann nicht direkt in Dateien speichern. „Speichern\" lädt die Datei stattdessen herunter. Für direktes Speichern Chrome oder Edge nutzen."
+  },
+  "new": {
+    "message": "Neu"
+  },
+  "open": {
+    "message": "Öffnen"
+  },
+  "save": {
+    "message": "Speichern"
+  },
+  "saveAs": {
+    "message": "Speichern unter"
+  },
+  "undo": {
+    "message": "↶ Rückgängig"
+  },
+  "redo": {
+    "message": "↷ Wiederholen"
+  },
+  "undoTitle": {
+    "message": "Rückgängig (Strg+Z)"
+  },
+  "redoTitle": {
+    "message": "Wiederholen (Strg+Y / Strg+Shift+Z)"
+  },
+  "lc": {
+    "message": "Keys klein"
+  },
+  "lcTitle": {
+    "message": "Neue Feldnamen in Kleinbuchstaben anlegen (tags: statt Tags:)"
+  },
+  "addField": {
+    "message": "+ Feld"
+  },
+  "keyPh": {
+    "message": "Feldname eingeben, Enter"
+  },
+  "emptyHint": {
+    "message": "Noch kein Frontmatter. Mit „+ Feld\" anlegen oder rechts am Textanfang <code>tags:</code> tippen."
+  },
+  "edPh": {
+    "message": "Markdown hier eingeben oder Datei öffnen / hierher ziehen …"
+  },
+  "untitled": {
+    "message": "unbenannt.md"
+  },
+  "today": {
+    "message": "heute"
+  },
+  "fromTitle": {
+    "message": "aus Title"
+  },
+  "removeField": {
+    "message": "Feld entfernen"
+  },
+  "closeTab": {
+    "message": "Tab schließen"
+  },
+  "newTab": {
+    "message": "Neuer Tab"
+  },
+  "confirmClose": {
+    "message": "„$NAME$“ hat ungespeicherte Änderungen. Trotzdem schließen?",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "post.md"
+      }
+    }
+  },
+  "noTitle": {
+    "message": "Kein Title-Feld mit Inhalt"
+  },
+  "badKey": {
+    "message": "Ungültiger Feldname"
+  },
+  "keyExists": {
+    "message": "Feld existiert schon"
+  },
+  "openFailed": {
+    "message": "Öffnen fehlgeschlagen: "
+  },
+  "saveFailed": {
+    "message": "Speichern fehlgeschlagen: "
+  },
+  "saved": {
+    "message": "Gespeichert"
+  },
+  "downloaded": {
+    "message": "Heruntergeladen"
+  },
+  "tbBold": {
+    "message": "Fett (Strg+B)"
+  },
+  "tbItalic": {
+    "message": "Kursiv (Strg+I)"
+  },
+  "tbStrike": {
+    "message": "Durchgestrichen"
+  },
+  "tbH1": {
+    "message": "Überschrift 1"
+  },
+  "tbH2": {
+    "message": "Überschrift 2"
+  },
+  "tbH3": {
+    "message": "Überschrift 3"
+  },
+  "tbUl": {
+    "message": "Aufzählung"
+  },
+  "tbOl": {
+    "message": "Nummerierte Liste"
+  },
+  "tbQuote": {
+    "message": "Zitat"
+  },
+  "tbCode": {
+    "message": "Inline-Code"
+  },
+  "tbCodeBlock": {
+    "message": "Codeblock"
+  },
+  "tbLink": {
+    "message": "Link (Strg+K)"
+  },
+  "tbImage": {
+    "message": "Bild einfügen"
+  },
+  "phText": {
+    "message": "Text"
+  },
+  "phAlt": {
+    "message": "Alt-Text"
+  },
+  "langName": {
+    "message": "Deutsch"
+  },
+  "langTitle": {
+    "message": "Sprache"
+  },
+  "frontmatter": {
+    "message": "Frontmatter"
+  },
+  "textDirection": {
+    "message": "ltr"
+  },
+  "loadLang": {
+    "message": "Sprachdatei laden …"
+  },
+  "packLoaded": {
+    "message": "Sprachdatei geladen: $LANG$",
+    "placeholders": {
+      "lang": {
+        "content": "$1",
+        "example": "Français"
+      }
+    }
+  },
+  "packInvalid": {
+    "message": "Keine gültige Sprachdatei"
+  },
+  "packCodePrompt": {
+    "message": "Sprachcode für diese Datei (z. B. fr oder pt-BR):"
+  }
+}
