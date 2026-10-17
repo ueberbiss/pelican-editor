@@ -15,6 +15,9 @@ async function openFiles(list) {
   const inp = d.getElementById('fallback-input');
   Object.defineProperty(inp, 'files', { value: list.map(([n, t]) => new w.File([t], n)), configurable: true });
   inp.dispatchEvent(new w.Event('change'));
+  // files are read asynchronously; wait until all tabs exist (or time out) instead of a fixed delay
+  const want = list.length;
+  for (let i = 0; i < 100 && tabs().length < want; i++) await sleep(20);
   await sleep(50);
 }
 (async () => {

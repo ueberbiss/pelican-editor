@@ -4,6 +4,7 @@
 // and validates the translations. Usage:
 //   node build.mjs           validate + build + regenerate STRINGS.md
 //   node build.mjs --check   validate only (CI / pre-commit)
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,6 +88,16 @@ if (!checkOnly) {
     .replace(new RegExp('\\u2029', 'g'), '\\u2029'); // safe inside <script>
   let html = template.replace(MARKER, () => json); // function form: translations may contain "$"
   html = html.replace('<!doctype html>\n', () => '<!doctype html>\n<!-- GENERATED from src/pelican-editor.src.html and _locales/ by build.mjs. Edit those, not this file. -->\n');
+  // Strict CSP: the page has no external resources or inline handlers, so only the
+  // one inline <script> and <style> (pinned by hash) may run.
+  const inline = tag => {
+    const parts = html.split(`<${tag}>`);
+    if (parts.length !== 2 || parts[1].split(`</${tag}>`).length !== 2) { console.error(`expected exactly one <${tag}> block in the source`); process.exit(1); }
+    return parts[1].split(`</${tag}>`)[0];
+  };
+  const hash = s => `'sha256-${crypto.createHash('sha256').update(s, 'utf8').digest('base64')}'`;
+  const csp = `default-src 'none'; script-src ${hash(inline('script'))}; style-src ${hash(inline('style'))}; img-src data:; base-uri 'none'; form-action 'none'`;
+  html = html.replace('<meta charset="utf-8">\n', () => `<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="${csp}">\n`);
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
   fs.writeFileSync(path.join(root, 'dist', 'pelican-editor.html'), html);
 

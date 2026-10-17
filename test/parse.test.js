@@ -24,3 +24,11 @@ assert.strictEqual(parse(serialize([], q.body)).fields.length, 0);
 assert.strictEqual(parse('Summary: a\n    b\n    c\nTags: x\n\nbody').fields[0].value, 'a\nb\nc');
 assert.strictEqual(parse('Das ist: Prosa\n').fields.length, 0);
 assert.strictEqual(slugify('Hühner-Äpfel & Größe!'), 'huehner-aepfel-groesse');
+
+// stray: first non-blank line that ends the header is reported, never for clean files or plain prose
+assert.strictEqual(p.stray, null);
+assert.deepStrictEqual(parse('Title: A\nSummary: x\n  y\n\nbody').stray, { line: 3, text: '  y' });
+assert.deepStrictEqual(parse('A: b\nSome prose').stray, { line: 2, text: 'Some prose' });
+assert.strictEqual(parse('Das ist: Prosa\n').stray, null);
+assert.strictEqual(parse('Summary: a\n    b\n\nbody').stray, null);
+assert.strictEqual(parse('A: b').stray, null);

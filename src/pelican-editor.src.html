@@ -79,6 +79,7 @@
   }
   .field textarea:focus,#newkey:focus,#ed:focus{outline:2px solid var(--accent);outline-offset:-1px}
   #empty-hint{color:var(--muted);font-size:13px}
+  #stray-warn{color:var(--danger);font-size:13px;margin:8px 0 0;overflow-wrap:anywhere}
   main > section{display:flex;flex-direction:column;min-height:0;min-width:0}
   #toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
   #toolbar button{min-width:32px;padding:3px 8px;font:13px var(--mono)}
@@ -137,6 +138,7 @@
     </div>
     <div id="fields"></div>
     <p id="empty-hint" data-i18n-html="emptyHint"></p>
+    <p id="stray-warn" role="alert" hidden></p>
   </aside>
   <section>
     <div id="toolbar" role="toolbar">
@@ -182,18 +184,20 @@ function parse(text) {
     const line = lines[i];
     if (line.trim() === '') break;
     const m = KEY_RE.exec(line);
-    if (m) { fields.push({ key: m[1], value: m[2].replace(/\s+$/, '') }); continue; }
+    if (m) { fields.push({ key: m[1], value: m[2].trimEnd() }); continue; }
     if (CONT_RE.test(line) && fields.length) {
       fields[fields.length - 1].value += '\n' + line.trim();
       continue;
     }
     break;
   }
-  let bodyLine = 0;
+  let bodyLine = 0, stray = null;
   if (fields.length) {
     bodyLine = (i < lines.length && lines[i].trim() === '') ? i + 1 : i;
+    // a non-blank line that ended the header: it is body text now, which is easy to miss
+    if (i < lines.length && lines[i].trim() !== '') stray = { line: i + 1, text: lines[i] };
   }
-  return { fields, body: lines.slice(bodyLine).join('\n') };
+  return { fields, body: lines.slice(bodyLine).join('\n'), stray };
 }
 
 function serialize(fields, body) {
@@ -202,7 +206,7 @@ function serialize(fields, body) {
     return KEY_RE.test(body.split('\n')[0]) ? '\n' + body : body;
   }
   const head = fields.map(f => {
-    const parts = f.value.replace(/\s+$/, '').split('\n');
+    const parts = f.value.trimEnd().split('\n');
     let s = f.key + ':' + (parts[0] ? ' ' + parts[0] : '');
     for (let k = 1; k < parts.length; k++) s += '\n    ' + parts[k];
     return s;
@@ -236,6 +240,7 @@ const LOCALES = /*__LOCALES__*/ {};
 const I18N = {};
 Object.keys(LOCALES).forEach(c => { I18N[c] = flattenPack(LOCALES[c]); });
 const PACK_KEY = 'pme.packs';
+const LANG_CODE_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/;
 
 // Accepts messages.json ({key:{message,placeholders}}) or a flat {key:"text"} object.
 // Chrome-style placeholders ($NAME$) become {name}; "$$" is a literal dollar sign.
@@ -259,12 +264,12 @@ function flattenPack(obj) {
 function loadStoredPacks() {
   let packs = {};
   try { packs = JSON.parse(lsGet(PACK_KEY) || '{}'); } catch (e) { packs = {}; }
-  Object.keys(packs).forEach(c => { I18N[c] = Object.assign({}, I18N[c] || {}, flattenPack(packs[c])); });
+  Object.keys(packs).filter(c => LANG_CODE_RE.test(c)).forEach(c => { I18N[c] = Object.assign({}, I18N[c] || {}, flattenPack(packs[c])); });
 }
 loadStoredPacks();
 function detectLang() {
   const saved = lsGet('pme.lang');
-  if (saved && I18N[saved]) return saved;
+  if (saved && Object.hasOwn(I18N, saved)) return saved;
   const codes = Object.keys(I18N);
   const prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || 'en'];
   for (const p of prefs) {
@@ -296,7 +301,7 @@ function applyLang() {
   ui(); renderFields();
 }
 
-let fields = [], body = '';
+let fields = [], body = '', stray = null;
 let handle = null, eol = '\n', dirty = false, fname = '';
 // undo history: snapshots of the full text (native undo breaks when the form rewrites the textarea)
 let hist = [''], hIdx = 0, lastKind = '', lastT = 0, savedText = '';
@@ -334,7 +339,13 @@ function ui() {
   $('fname').textContent = fname;
   $('dirty').className = dirty ? 'on' : '';
   document.title = (dirty ? '● ' : '') + fname + ' – Pelican MD';
+  showStray();
   renderTabs();
+}
+function showStray() {
+  const el = $('stray-warn');
+  el.hidden = !stray;
+  if (stray) el.textContent = tr('strayWarn', { line: stray.line, text: stray.text.trim().slice(0, 60) });
 }
 function setDirty(v) { dirty = v; ui(); }
 
@@ -380,6 +391,7 @@ function renderFields() {
 
 function commit(kind) {
   ed.value = serialize(fields, body);
+  stray = null; // serialize ends the header with a blank line, so nothing is swallowed anymore
   record(kind || 'struct');
   setDirty(ed.value !== savedText);
   rememberKeys();
@@ -412,7 +424,7 @@ function restore(t) {
   const old = ed.value;
   ed.value = t;
   const p = parse(t);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys();
   setDirty(t !== savedText); updateHistBtns();
   let k = 0;
@@ -438,7 +450,7 @@ function applyParsed(nf) {
 
 function refreshAll() {
   const p = parse(ed.value);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys(); ui();
 }
 
@@ -478,7 +490,7 @@ box.addEventListener('click', e => {
 });
 function editorChanged(kind) {
   const p = parse(ed.value);
-  body = p.body;
+  body = p.body; stray = p.stray;
   applyParsed(p.fields);
   record(kind);
   setDirty(ed.value !== savedText);
@@ -544,7 +556,7 @@ function activate(i) {
   hist = d.hist; hIdx = d.hIdx; lastKind = '';
   ed.value = d.text;
   const p = parse(d.text);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys(); updateHistBtns();
   setDirty(ed.value !== savedText);
   ed.setSelectionRange(d.selS, d.selE); ed.scrollTop = d.scroll;
@@ -850,7 +862,7 @@ $('pack-input').addEventListener('change', async e => {
     if (!Object.keys(flat).length) throw new Error('empty');
     const guess = (f.name.replace(/\.json$/i, '').match(/(?:^|[._-])([a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?)$/i) || [])[1] || '';
     let code = (prompt(tr('packCodePrompt'), guess) || '').trim().replace('_', '-');
-    if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(code)) return;
+    if (!LANG_CODE_RE.test(code)) return;
     const parts = code.split('-');
     code = parts[0].toLowerCase() + (parts[1] ? '-' + (parts[1].length === 2 ? parts[1].toUpperCase() : parts[1]) : '');
     let packs = {};

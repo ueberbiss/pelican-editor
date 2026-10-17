@@ -3,6 +3,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ysebb6XZ4RwwyFu0Kn3t0f+HeCi3wYSAbh3gSNhPrbQ='; style-src 'sha256-yTBLUFTdtpRty66N+wGZ9g3aSDVrhxDChTuOXKmGIA8='; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pelican MD Editor</title>
 <style>
@@ -80,6 +81,7 @@
   }
   .field textarea:focus,#newkey:focus,#ed:focus{outline:2px solid var(--accent);outline-offset:-1px}
   #empty-hint{color:var(--muted);font-size:13px}
+  #stray-warn{color:var(--danger);font-size:13px;margin:8px 0 0;overflow-wrap:anywhere}
   main > section{display:flex;flex-direction:column;min-height:0;min-width:0}
   #toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
   #toolbar button{min-width:32px;padding:3px 8px;font:13px var(--mono)}
@@ -138,6 +140,7 @@
     </div>
     <div id="fields"></div>
     <p id="empty-hint" data-i18n-html="emptyHint"></p>
+    <p id="stray-warn" role="alert" hidden></p>
   </aside>
   <section>
     <div id="toolbar" role="toolbar">
@@ -183,18 +186,20 @@ function parse(text) {
     const line = lines[i];
     if (line.trim() === '') break;
     const m = KEY_RE.exec(line);
-    if (m) { fields.push({ key: m[1], value: m[2].replace(/\s+$/, '') }); continue; }
+    if (m) { fields.push({ key: m[1], value: m[2].trimEnd() }); continue; }
     if (CONT_RE.test(line) && fields.length) {
       fields[fields.length - 1].value += '\n' + line.trim();
       continue;
     }
     break;
   }
-  let bodyLine = 0;
+  let bodyLine = 0, stray = null;
   if (fields.length) {
     bodyLine = (i < lines.length && lines[i].trim() === '') ? i + 1 : i;
+    // a non-blank line that ended the header: it is body text now, which is easy to miss
+    if (i < lines.length && lines[i].trim() !== '') stray = { line: i + 1, text: lines[i] };
   }
-  return { fields, body: lines.slice(bodyLine).join('\n') };
+  return { fields, body: lines.slice(bodyLine).join('\n'), stray };
 }
 
 function serialize(fields, body) {
@@ -203,7 +208,7 @@ function serialize(fields, body) {
     return KEY_RE.test(body.split('\n')[0]) ? '\n' + body : body;
   }
   const head = fields.map(f => {
-    const parts = f.value.replace(/\s+$/, '').split('\n');
+    const parts = f.value.trimEnd().split('\n');
     let s = f.key + ':' + (parts[0] ? ' ' + parts[0] : '');
     for (let k = 1; k < parts.length; k++) s += '\n    ' + parts[k];
     return s;
@@ -233,10 +238,11 @@ const hasFS = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
 
 // Translations live in _locales/<code>/messages.json (WebExtension format) and are inlined here by build.mjs.
 // Do not edit this line by hand; see README.md ("Adding a language").
-const LOCALES = {"en":{"banner":{"message":"This browser cannot save directly to files. “Save” downloads the file instead. Use Chrome or Edge for direct saving."},"new":{"message":"New"},"open":{"message":"Open"},"save":{"message":"Save"},"saveAs":{"message":"Save as"},"undo":{"message":"↶ Undo"},"redo":{"message":"↷ Redo"},"undoTitle":{"message":"Undo (Ctrl+Z)"},"redoTitle":{"message":"Redo (Ctrl+Y / Ctrl+Shift+Z)"},"lc":{"message":"Lowercase keys"},"lcTitle":{"message":"Create new field names in lowercase (tags: instead of Tags:)"},"addField":{"message":"+ Field"},"keyPh":{"message":"Enter field name, then Enter"},"emptyHint":{"message":"No frontmatter yet. Add one with “+ Field” or type \u003ccode>tags:\u003c/code> at the start of the text on the right."},"edPh":{"message":"Type Markdown here, or open / drop a file …"},"untitled":{"message":"untitled.md"},"today":{"message":"today"},"fromTitle":{"message":"from Title"},"removeField":{"message":"Remove field"},"closeTab":{"message":"Close tab"},"newTab":{"message":"New tab"},"confirmClose":{"message":"“$NAME$” has unsaved changes. Close anyway?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"No Title field with content"},"badKey":{"message":"Invalid field name"},"keyExists":{"message":"Field already exists"},"openFailed":{"message":"Open failed: "},"saveFailed":{"message":"Save failed: "},"saved":{"message":"Saved"},"downloaded":{"message":"Downloaded"},"tbBold":{"message":"Bold (Ctrl+B)"},"tbItalic":{"message":"Italic (Ctrl+I)"},"tbStrike":{"message":"Strikethrough"},"tbH1":{"message":"Heading 1"},"tbH2":{"message":"Heading 2"},"tbH3":{"message":"Heading 3"},"tbUl":{"message":"Bullet list"},"tbOl":{"message":"Numbered list"},"tbQuote":{"message":"Quote"},"tbCode":{"message":"Inline code"},"tbCodeBlock":{"message":"Code block"},"tbLink":{"message":"Link (Ctrl+K)"},"tbImage":{"message":"Insert image"},"phText":{"message":"text"},"phAlt":{"message":"alt text"},"langName":{"message":"English"},"langTitle":{"message":"Language"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Load language file …"},"packLoaded":{"message":"Language file loaded: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Not a valid language file"},"packCodePrompt":{"message":"Language code for this file (e.g. fr or pt-BR):"}},"de":{"banner":{"message":"Dieser Browser kann nicht direkt in Dateien speichern. „Speichern\" lädt die Datei stattdessen herunter. Für direktes Speichern Chrome oder Edge nutzen."},"new":{"message":"Neu"},"open":{"message":"Öffnen"},"save":{"message":"Speichern"},"saveAs":{"message":"Speichern unter"},"undo":{"message":"↶ Rückgängig"},"redo":{"message":"↷ Wiederholen"},"undoTitle":{"message":"Rückgängig (Strg+Z)"},"redoTitle":{"message":"Wiederholen (Strg+Y / Strg+Shift+Z)"},"lc":{"message":"Keys klein"},"lcTitle":{"message":"Neue Feldnamen in Kleinbuchstaben anlegen (tags: statt Tags:)"},"addField":{"message":"+ Feld"},"keyPh":{"message":"Feldname eingeben, Enter"},"emptyHint":{"message":"Noch kein Frontmatter. Mit „+ Feld\" anlegen oder rechts am Textanfang \u003ccode>tags:\u003c/code> tippen."},"edPh":{"message":"Markdown hier eingeben oder Datei öffnen / hierher ziehen …"},"untitled":{"message":"unbenannt.md"},"today":{"message":"heute"},"fromTitle":{"message":"aus Title"},"removeField":{"message":"Feld entfernen"},"closeTab":{"message":"Tab schließen"},"newTab":{"message":"Neuer Tab"},"confirmClose":{"message":"„$NAME$“ hat ungespeicherte Änderungen. Trotzdem schließen?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"Kein Title-Feld mit Inhalt"},"badKey":{"message":"Ungültiger Feldname"},"keyExists":{"message":"Feld existiert schon"},"openFailed":{"message":"Öffnen fehlgeschlagen: "},"saveFailed":{"message":"Speichern fehlgeschlagen: "},"saved":{"message":"Gespeichert"},"downloaded":{"message":"Heruntergeladen"},"tbBold":{"message":"Fett (Strg+B)"},"tbItalic":{"message":"Kursiv (Strg+I)"},"tbStrike":{"message":"Durchgestrichen"},"tbH1":{"message":"Überschrift 1"},"tbH2":{"message":"Überschrift 2"},"tbH3":{"message":"Überschrift 3"},"tbUl":{"message":"Aufzählung"},"tbOl":{"message":"Nummerierte Liste"},"tbQuote":{"message":"Zitat"},"tbCode":{"message":"Inline-Code"},"tbCodeBlock":{"message":"Codeblock"},"tbLink":{"message":"Link (Strg+K)"},"tbImage":{"message":"Bild einfügen"},"phText":{"message":"Text"},"phAlt":{"message":"Alt-Text"},"langName":{"message":"Deutsch"},"langTitle":{"message":"Sprache"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Sprachdatei laden …"},"packLoaded":{"message":"Sprachdatei geladen: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Keine gültige Sprachdatei"},"packCodePrompt":{"message":"Sprachcode für diese Datei (z. B. fr oder pt-BR):"}}};
+const LOCALES = {"en":{"banner":{"message":"This browser cannot save directly to files. “Save” downloads the file instead. Use Chrome or Edge for direct saving."},"new":{"message":"New"},"open":{"message":"Open"},"save":{"message":"Save"},"saveAs":{"message":"Save as"},"undo":{"message":"↶ Undo"},"redo":{"message":"↷ Redo"},"undoTitle":{"message":"Undo (Ctrl+Z)"},"redoTitle":{"message":"Redo (Ctrl+Y / Ctrl+Shift+Z)"},"lc":{"message":"Lowercase keys"},"lcTitle":{"message":"Create new field names in lowercase (tags: instead of Tags:)"},"addField":{"message":"+ Field"},"keyPh":{"message":"Enter field name, then Enter"},"strayWarn":{"message":"Line $LINE$ is not metadata, so the frontmatter ends before it and the rest is body text: “$TEXT$”. Metadata lines must look like “Key: value”; continuation lines need 4 spaces.","placeholders":{"line":{"content":"$1","example":"12"},"text":{"content":"$2","example":"  second line of summary"}}},"emptyHint":{"message":"No frontmatter yet. Add one with “+ Field” or type \u003ccode>tags:\u003c/code> at the start of the text on the right."},"edPh":{"message":"Type Markdown here, or open / drop a file …"},"untitled":{"message":"untitled.md"},"today":{"message":"today"},"fromTitle":{"message":"from Title"},"removeField":{"message":"Remove field"},"closeTab":{"message":"Close tab"},"newTab":{"message":"New tab"},"confirmClose":{"message":"“$NAME$” has unsaved changes. Close anyway?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"No Title field with content"},"badKey":{"message":"Invalid field name"},"keyExists":{"message":"Field already exists"},"openFailed":{"message":"Open failed: "},"saveFailed":{"message":"Save failed: "},"saved":{"message":"Saved"},"downloaded":{"message":"Downloaded"},"tbBold":{"message":"Bold (Ctrl+B)"},"tbItalic":{"message":"Italic (Ctrl+I)"},"tbStrike":{"message":"Strikethrough"},"tbH1":{"message":"Heading 1"},"tbH2":{"message":"Heading 2"},"tbH3":{"message":"Heading 3"},"tbUl":{"message":"Bullet list"},"tbOl":{"message":"Numbered list"},"tbQuote":{"message":"Quote"},"tbCode":{"message":"Inline code"},"tbCodeBlock":{"message":"Code block"},"tbLink":{"message":"Link (Ctrl+K)"},"tbImage":{"message":"Insert image"},"phText":{"message":"text"},"phAlt":{"message":"alt text"},"langName":{"message":"English"},"langTitle":{"message":"Language"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Load language file …"},"packLoaded":{"message":"Language file loaded: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Not a valid language file"},"packCodePrompt":{"message":"Language code for this file (e.g. fr or pt-BR):"}},"de":{"banner":{"message":"Dieser Browser kann nicht direkt in Dateien speichern. „Speichern\" lädt die Datei stattdessen herunter. Für direktes Speichern Chrome oder Edge nutzen."},"new":{"message":"Neu"},"open":{"message":"Öffnen"},"save":{"message":"Speichern"},"saveAs":{"message":"Speichern unter"},"undo":{"message":"↶ Rückgängig"},"redo":{"message":"↷ Wiederholen"},"undoTitle":{"message":"Rückgängig (Strg+Z)"},"redoTitle":{"message":"Wiederholen (Strg+Y / Strg+Shift+Z)"},"lc":{"message":"Keys klein"},"lcTitle":{"message":"Neue Feldnamen in Kleinbuchstaben anlegen (tags: statt Tags:)"},"addField":{"message":"+ Feld"},"keyPh":{"message":"Feldname eingeben, Enter"},"strayWarn":{"message":"Zeile $LINE$ ist kein Metadatum, daher endet der Frontmatter davor und der Rest ist Fließtext: „$TEXT$“. Metadaten-Zeilen müssen wie „Schlüssel: Wert“ aussehen; Folgezeilen brauchen 4 Leerzeichen.","placeholders":{"line":{"content":"$1"},"text":{"content":"$2"}}},"emptyHint":{"message":"Noch kein Frontmatter. Mit „+ Feld\" anlegen oder rechts am Textanfang \u003ccode>tags:\u003c/code> tippen."},"edPh":{"message":"Markdown hier eingeben oder Datei öffnen / hierher ziehen …"},"untitled":{"message":"unbenannt.md"},"today":{"message":"heute"},"fromTitle":{"message":"aus Title"},"removeField":{"message":"Feld entfernen"},"closeTab":{"message":"Tab schließen"},"newTab":{"message":"Neuer Tab"},"confirmClose":{"message":"„$NAME$“ hat ungespeicherte Änderungen. Trotzdem schließen?","placeholders":{"name":{"content":"$1","example":"post.md"}}},"noTitle":{"message":"Kein Title-Feld mit Inhalt"},"badKey":{"message":"Ungültiger Feldname"},"keyExists":{"message":"Feld existiert schon"},"openFailed":{"message":"Öffnen fehlgeschlagen: "},"saveFailed":{"message":"Speichern fehlgeschlagen: "},"saved":{"message":"Gespeichert"},"downloaded":{"message":"Heruntergeladen"},"tbBold":{"message":"Fett (Strg+B)"},"tbItalic":{"message":"Kursiv (Strg+I)"},"tbStrike":{"message":"Durchgestrichen"},"tbH1":{"message":"Überschrift 1"},"tbH2":{"message":"Überschrift 2"},"tbH3":{"message":"Überschrift 3"},"tbUl":{"message":"Aufzählung"},"tbOl":{"message":"Nummerierte Liste"},"tbQuote":{"message":"Zitat"},"tbCode":{"message":"Inline-Code"},"tbCodeBlock":{"message":"Codeblock"},"tbLink":{"message":"Link (Strg+K)"},"tbImage":{"message":"Bild einfügen"},"phText":{"message":"Text"},"phAlt":{"message":"Alt-Text"},"langName":{"message":"Deutsch"},"langTitle":{"message":"Sprache"},"frontmatter":{"message":"Frontmatter"},"textDirection":{"message":"ltr"},"loadLang":{"message":"Sprachdatei laden …"},"packLoaded":{"message":"Sprachdatei geladen: $LANG$","placeholders":{"lang":{"content":"$1","example":"Français"}}},"packInvalid":{"message":"Keine gültige Sprachdatei"},"packCodePrompt":{"message":"Sprachcode für diese Datei (z. B. fr oder pt-BR):"}}};
 const I18N = {};
 Object.keys(LOCALES).forEach(c => { I18N[c] = flattenPack(LOCALES[c]); });
 const PACK_KEY = 'pme.packs';
+const LANG_CODE_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/;
 
 // Accepts messages.json ({key:{message,placeholders}}) or a flat {key:"text"} object.
 // Chrome-style placeholders ($NAME$) become {name}; "$$" is a literal dollar sign.
@@ -260,12 +266,12 @@ function flattenPack(obj) {
 function loadStoredPacks() {
   let packs = {};
   try { packs = JSON.parse(lsGet(PACK_KEY) || '{}'); } catch (e) { packs = {}; }
-  Object.keys(packs).forEach(c => { I18N[c] = Object.assign({}, I18N[c] || {}, flattenPack(packs[c])); });
+  Object.keys(packs).filter(c => LANG_CODE_RE.test(c)).forEach(c => { I18N[c] = Object.assign({}, I18N[c] || {}, flattenPack(packs[c])); });
 }
 loadStoredPacks();
 function detectLang() {
   const saved = lsGet('pme.lang');
-  if (saved && I18N[saved]) return saved;
+  if (saved && Object.hasOwn(I18N, saved)) return saved;
   const codes = Object.keys(I18N);
   const prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || 'en'];
   for (const p of prefs) {
@@ -297,7 +303,7 @@ function applyLang() {
   ui(); renderFields();
 }
 
-let fields = [], body = '';
+let fields = [], body = '', stray = null;
 let handle = null, eol = '\n', dirty = false, fname = '';
 // undo history: snapshots of the full text (native undo breaks when the form rewrites the textarea)
 let hist = [''], hIdx = 0, lastKind = '', lastT = 0, savedText = '';
@@ -335,7 +341,13 @@ function ui() {
   $('fname').textContent = fname;
   $('dirty').className = dirty ? 'on' : '';
   document.title = (dirty ? '● ' : '') + fname + ' – Pelican MD';
+  showStray();
   renderTabs();
+}
+function showStray() {
+  const el = $('stray-warn');
+  el.hidden = !stray;
+  if (stray) el.textContent = tr('strayWarn', { line: stray.line, text: stray.text.trim().slice(0, 60) });
 }
 function setDirty(v) { dirty = v; ui(); }
 
@@ -381,6 +393,7 @@ function renderFields() {
 
 function commit(kind) {
   ed.value = serialize(fields, body);
+  stray = null; // serialize ends the header with a blank line, so nothing is swallowed anymore
   record(kind || 'struct');
   setDirty(ed.value !== savedText);
   rememberKeys();
@@ -413,7 +426,7 @@ function restore(t) {
   const old = ed.value;
   ed.value = t;
   const p = parse(t);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys();
   setDirty(t !== savedText); updateHistBtns();
   let k = 0;
@@ -439,7 +452,7 @@ function applyParsed(nf) {
 
 function refreshAll() {
   const p = parse(ed.value);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys(); ui();
 }
 
@@ -479,7 +492,7 @@ box.addEventListener('click', e => {
 });
 function editorChanged(kind) {
   const p = parse(ed.value);
-  body = p.body;
+  body = p.body; stray = p.stray;
   applyParsed(p.fields);
   record(kind);
   setDirty(ed.value !== savedText);
@@ -545,7 +558,7 @@ function activate(i) {
   hist = d.hist; hIdx = d.hIdx; lastKind = '';
   ed.value = d.text;
   const p = parse(d.text);
-  body = p.body; fields = p.fields;
+  body = p.body; fields = p.fields; stray = p.stray;
   renderFields(); rememberKeys(); updateHistBtns();
   setDirty(ed.value !== savedText);
   ed.setSelectionRange(d.selS, d.selE); ed.scrollTop = d.scroll;
@@ -851,7 +864,7 @@ $('pack-input').addEventListener('change', async e => {
     if (!Object.keys(flat).length) throw new Error('empty');
     const guess = (f.name.replace(/\.json$/i, '').match(/(?:^|[._-])([a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?)$/i) || [])[1] || '';
     let code = (prompt(tr('packCodePrompt'), guess) || '').trim().replace('_', '-');
-    if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(code)) return;
+    if (!LANG_CODE_RE.test(code)) return;
     const parts = code.split('-');
     code = parts[0].toLowerCase() + (parts[1] ? '-' + (parts[1].length === 2 ? parts[1].toUpperCase() : parts[1]) : '');
     let packs = {};
