@@ -27,6 +27,10 @@ assert.ok(csp[1].includes("default-src 'none'"));
 assert.ok(csp[1].includes('script-src ' + sha(script)), 'script hash does not match');
 assert.ok(csp[1].includes('style-src ' + sha(style)), 'style hash does not match');
 assert.ok(!/unsafe-inline|unsafe-eval/.test(csp[1]));
+// images may only come from data: and blob: URLs made by the page itself (media folder), never from the network
+assert.ok(/img-src data: blob:;/.test(csp[1]), 'img-src must be exactly data: blob:');
+assert.ok(!/https?:|\*/.test(csp[1]), 'no network or wildcard sources in the CSP');
+assert.ok(!/connect-src|frame-src|font-src/.test(csp[1].replace(/default-src 'none'/, '')), 'everything else stays on default-src none');
 
 // F3: a stored "__proto__" pack must not alter language lookup or crash startup.
 const dom = new JSDOM(html, {

@@ -43,6 +43,10 @@ assert.strictEqual(b.t, 'table');
 assert.deepStrictEqual(b.align, ['left', 'right']);
 assert.strictEqual(text(b.rows[0][1]), '2 | x');
 assert.strictEqual(b.rows[1].length, 2);
+assert.strictEqual(blocks('a | b\n| --- | :-: |\n1 | 2')[0].t, 'table', 'separator with spaces and centre alignment');
+assert.strictEqual(blocks('a | b\n--- | ---\n1 | 2')[0].t, 'table', 'separator without outer pipes');
+assert.notStrictEqual(blocks('a | b\n--x | ---')[0].t, 'table', 'non-dash cell is not a separator');
+assert.notStrictEqual(blocks('a | b\n    --- | ---')[0].t, 'table', 'indented row is not a separator');
 assert.deepStrictEqual([blocks('a | b\n---')[0].t, blocks('a | b\n---')[0].n], ['h', 2], 'column mismatch is a setext heading, not a table');
 
 // ---- inline ----
@@ -89,6 +93,12 @@ const hostile = {
   hashes: '#'.repeat(250000),
   spaces: 'a' + ' '.repeat(250000) + 'b',
   emphasisRuns: '*'.repeat(8000),
+  // table separator rows: whitespace/pipe runs used to backtrack quadratically (40k spaces took 1.7 s)
+  tableSepSpaces: 'a | b\n---' + ' '.repeat(250000) + 'x',
+  tableSepTabs: 'a | b\n---' + '\t'.repeat(250000) + 'x',
+  tableSepPipes: 'a | b\n' + '|-'.repeat(100000) + 'x',
+  tableSepMixed: 'a | b\n' + ':- '.repeat(80000),
+  tableHeaderLong: 'a | '.repeat(100000) + '\n---|---',
   long: 'x'.repeat(2000000),
 };
 for (const [name, input] of Object.entries(hostile)) {

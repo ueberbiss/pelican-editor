@@ -19,10 +19,36 @@ The preview is built with DOM calls only (never `innerHTML`), so it is safe with
 - Raw HTML in the text is shown as text, not rendered.
 - Only `http(s)` and `mailto` links are clickable (they open in a new tab). Relative links,
   `{filename}/…` and anything else show as inert text with the target in the tooltip.
-- Images are not loaded (the page makes no network requests). They show as a placeholder with the alt text.
+- Remote images are never loaded (the page makes no network requests). Local images need a project folder, see below.
 - Very long documents are cut after 300,000 characters, and paragraphs over 8,000 characters are shown as plain text.
 
 The parser (`mdParse`) is inside the `// <pure>` block, so it is tested directly in `test/preview.test.js`.
+
+### Project folder and media folder (images in the preview)
+
+Click **Project folder** and choose your Pelican *project* folder (the one with `pelicanconf.py` and the
+content folder, e.g. `ramenrakete`). Not a subfolder like `content/images`. The editor then shows local
+images in the preview, for example `![alt]({static}/images/reviews/photo.jpg "title")`.
+
+- The **content folder** next to the button is the Pelican `PATH` setting. It is read from
+  `pelicanconf.py` (`PATH = 'content'`) and defaults to `content`. Change it if your project differs.
+  A red border means the folder does not exist in the project folder. `{static}/…` paths start there, so
+  any layout works (`content/images/reviews`, `content/pics`, …).
+- The **Media folder** button (appears once a project is connected) chooses where your images live, anywhere
+  inside the project folder. It defaults to `content/images` when that exists. The 🖼 button opens its
+  file picker there. The choice is only a starting point: it doesn't limit which images can be shown.
+- `{static}/x.jpg`, `{attach}/x.jpg`, `{filename}/x.jpg` and `/x.jpg` are relative to the content folder.
+  `x.jpg`, `./x.jpg`, `../x.jpg` and `{static}x.jpg` are relative to the Markdown file. That folder is only
+  known for files opened with **Open** that sit inside the project folder; otherwise the content folder is assumed.
+- The 🖼 button inserts `![](…)` with the correct `{static}/…` path (several files at once are possible).
+  Images outside the content folder are refused with a message.
+- A missing, oversized (>25 MB) or broken image stays a dashed placeholder; the tooltip says which path was looked up.
+- The folder is only **read**. Nothing is uploaded, copied or changed, and paths cannot leave the content folder
+  (`..`, encoded `..`, backslashes and URL schemes are refused). Remote `http(s)` images still show as placeholders.
+- The folders are remembered (IndexedDB). After a browser restart one click on **Reconnect project folder** grants access again.
+- Works in **Chrome and Edge** only (File System Access API). In other browsers the button is disabled.
+  Firefox/Safari support is a known gap.
+- The page's CSP allows `img-src data: blob:`: images come from `blob:` URLs the page creates itself, never from the network.
 
 ## Project layout
 

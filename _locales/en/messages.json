@@ -56,12 +56,108 @@
     "description": "Toolbar button that shows or hides the rendered Markdown preview next to the editor."
   },
   "tbPreview": {
-    "message": "Show or hide the rendered preview (links open in a new tab; images are not loaded)",
+    "message": "Show or hide the rendered preview (links open in a new tab; local images need a project folder)",
     "description": "Tooltip of the preview toolbar button."
   },
   "previewTruncated": {
     "message": "Preview shortened: the document is very long.",
     "description": "Note at the end of the preview when only the first part of a very long document is rendered."
+  },
+  "mediaFolder": {
+    "message": "Project folder",
+    "description": "Toolbar button that connects the Pelican project (site) folder, the one containing pelicanconf.py, so local images can be shown in the preview."
+  },
+  "mediaFolderTip": {
+    "message": "Choose your Pelican project folder (the one with pelicanconf.py and the content folder) so images in the preview can be shown. Files are only read, never uploaded or changed.",
+    "description": "Tooltip of the project folder button when no folder is connected. pelicanconf.py is a file name: do not translate it."
+  },
+  "mediaConnected": {
+    "message": "Project: $NAME$",
+    "description": "Button label when a project folder is connected. $NAME$ is the folder name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "mysite"
+      }
+    }
+  },
+  "mediaChange": {
+    "message": "Project folder connected. Click to choose a different folder.",
+    "description": "Tooltip of the project folder button when a folder is connected."
+  },
+  "mediaReconnect": {
+    "message": "Reconnect project folder",
+    "description": "Button label when the browser needs permission for the stored project folder again."
+  },
+  "mediaReconnectTip": {
+    "message": "The browser asks for permission again after a restart. One click is enough.",
+    "description": "Tooltip of the reconnect button."
+  },
+  "mediaOff": {
+    "message": "Disconnect project folder",
+    "description": "Tooltip of the small button that disconnects the project folder."
+  },
+  "mediaDir": {
+    "message": "Content folder inside the project folder (Pelican setting PATH, usually content)",
+    "description": "Tooltip and label of the text box with the content folder name. PATH is the name of a Pelican setting: do not translate it."
+  },
+  "mediaDirBad": {
+    "message": "Folder not found in the project folder: $NAME$",
+    "description": "Error when the content folder name does not exist in the project folder. $NAME$ is the folder name that was typed.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "content"
+      }
+    }
+  },
+  "mediaUnsupported": {
+    "message": "The project folder (image preview) works in Chrome and Edge only",
+    "description": "Tooltip of the disabled project folder button in browsers without folder access."
+  },
+  "mediaNotFound": {
+    "message": "Image not found: $PATH$",
+    "description": "Tooltip on an image placeholder when the file does not exist in the media folder. $PATH$ is the path below the content folder.",
+    "placeholders": {
+      "path": {
+        "content": "$1",
+        "example": "images/reviews/a.jpg"
+      }
+    }
+  },
+  "mediaTooBig": {
+    "message": "Image is larger than 25 MB: $PATH$",
+    "description": "Tooltip on an image placeholder when the file is too large to show. $PATH$ is the path below the content folder.",
+    "placeholders": {
+      "path": {
+        "content": "$1",
+        "example": "images/reviews/a.jpg"
+      }
+    }
+  },
+  "mediaBroken": {
+    "message": "Image could not be displayed: $PATH$",
+    "description": "Tooltip on an image placeholder when the file exists but is not a valid image. $PATH$ is the path below the content folder.",
+    "placeholders": {
+      "path": {
+        "content": "$1",
+        "example": "images/reviews/a.jpg"
+      }
+    }
+  },
+  "mediaOutside": {
+    "message": "Not inside the content folder, so no path can be built: $NAME$",
+    "description": "Status message when a chosen image is outside the content folder. $NAME$ is the file name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "photo.jpg"
+      }
+    }
+  },
+  "mediaFailed": {
+    "message": "Media folder failed: ",
+    "description": "Start of an error message. The system error text is appended directly after it, so keep the trailing colon and space."
   },
   "strayWarn": {
     "message": "Line $LINE$ is not metadata, so the frontmatter ends before it and the rest is body text: “$TEXT$”. Metadata lines must look like “Key: value”; continuation lines need 4 spaces.",
@@ -244,5 +340,37 @@
   "packCodePrompt": {
     "message": "Language code for this file (e.g. fr or pt-BR):",
     "description": "Prompt asking for the language code of a loaded translation file. Keep the examples (fr, pt-BR)."
+  },
+  "imgDir": {
+    "message": "Media folder",
+    "description": "Toolbar button that chooses the folder with the images, inside the project folder. The image button opens its file picker there."
+  },
+  "imgDirTip": {
+    "message": "Choose the folder with your images (inside the project folder). The image button starts there.",
+    "description": "Tooltip of the media folder button when none is chosen."
+  },
+  "imgDirSet": {
+    "message": "Media: $PATH$",
+    "description": "Button label when a media folder is chosen. $PATH$ is its path inside the project folder, e.g. content/images.",
+    "placeholders": {
+      "path": {
+        "content": "$1",
+        "example": "content/images"
+      }
+    }
+  },
+  "imgDirChange": {
+    "message": "Media folder: $PATH$. Click to choose a different one.",
+    "description": "Tooltip of the media folder button when one is chosen. $PATH$ is its path inside the project folder.",
+    "placeholders": {
+      "path": {
+        "content": "$1",
+        "example": "content/images"
+      }
+    }
+  },
+  "imgDirOutside": {
+    "message": "The media folder must be inside the project folder",
+    "description": "Status message when the chosen media folder is not inside the project folder."
   }
 }

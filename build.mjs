@@ -96,7 +96,7 @@ if (!checkOnly) {
     return parts[1].split(`</${tag}>`)[0];
   };
   const hash = s => `'sha256-${crypto.createHash('sha256').update(s, 'utf8').digest('base64')}'`;
-  const csp = `default-src 'none'; script-src ${hash(inline('script'))}; style-src ${hash(inline('style'))}; img-src data:; base-uri 'none'; form-action 'none'`;
+  const csp = `default-src 'none'; script-src ${hash(inline('script'))}; style-src ${hash(inline('style'))}; img-src data: blob:; base-uri 'none'; form-action 'none'`;
   html = html.replace('<meta charset="utf-8">\n', () => `<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="${csp}">\n`);
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
   fs.writeFileSync(path.join(root, 'dist', 'pelican-editor.html'), html);

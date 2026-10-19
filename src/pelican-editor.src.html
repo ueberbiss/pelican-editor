@@ -117,7 +117,14 @@
   #preview .img-ph{display:inline-block;padding:0 8px;border:1px dashed var(--line);border-radius:4px;color:var(--muted)}
   #preview hr{border:none;border-top:1px solid var(--line)}
   #preview .note{color:var(--muted);font-size:13px}
-  #btn-preview[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  #btn-preview[aria-pressed="true"],#btn-media.on{border-color:var(--accent);color:var(--accent)}
+  #media-dir{width:8em;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:13px var(--mono)}
+  #media-dir[aria-invalid="true"]{border-color:var(--danger)}
+  #toolbar #btn-media-off{min-width:0;padding:0 4px}
+  #btn-img-dir.on{border-color:var(--accent);color:var(--accent)}
+  #btn-media:disabled{opacity:.5;cursor:not-allowed}
+  #preview img.media-img{display:block;max-width:100%;height:auto;margin:.4em 0;border-radius:4px}
+  #preview .img-miss{border-color:var(--danger);color:var(--danger)}
   @media (max-width:800px){
     main{grid-template-columns:1fr;grid-template-rows:minmax(0,40vh) 1fr}
     aside{border-right:none;border-bottom:1px solid var(--line)}
@@ -183,7 +190,11 @@
       <button data-act="link" data-i18n-title="tbLink">🔗</button>
       <button data-act="image" data-i18n-title="tbImage">🖼</button>
       <span class="grow"></span>
-      <button id="btn-preview" aria-pressed="false" data-i18n="preview" data-i18n-title="tbPreview"></button>
+      <input id="media-dir" hidden spellcheck="false" autocomplete="off" placeholder="content">
+      <button id="btn-media-off" class="icon" hidden>×</button>
+      <button id="btn-media"></button>
+      <button id="btn-img-dir" hidden></button>
+      <button id="btn-preview"aria-pressed="false" data-i18n="preview" data-i18n-title="tbPreview"></button>
     </div>
     <div id="pane">
       <textarea id="ed" dir="auto" spellcheck="false" data-i18n-placeholder="edPh"></textarea>
@@ -256,7 +267,6 @@ const MD_MAX_CHARS = 300000, MD_MAX_INLINE = 8000, MD_MAX_DEPTH = 8;
 const MD_ESC = '\\`*_{}[]()#+-.!~|<>';
 const MD_HR = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 const MD_LI = /^ {0,3}([*+-]|\d{1,9}[.)])[ \t]+(.*)$/;
-const MD_TSEP = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
 const MD_IND = /^(?: {4}|\t)/;
 const mdBlank = l => l.trim() === '';
 const mdIsAlnum = ch => /[\p{L}\p{N}]/u.test(ch || '');
@@ -435,6 +445,13 @@ function mdSplitRow(l) {
   return cells;
 }
 
+// Table separator row ("|:--|--:|"): every cell is dashes with optional colons. Checked by
+// splitting, not by one big regex, because adjacent whitespace quantifiers backtrack quadratically.
+function mdIsTableSep(l) {
+  if (l.length > MD_MAX_INLINE || MD_IND.test(l) || !/^[ \t|:-]+$/.test(l)) return false;
+  return mdSplitRow(l).every(c => /^:?-+:?$/.test(c));
+}
+
 function mdBlocks(lines, refs, depth) {
   const out = [], inl = s => mdInline(s, refs);
   let i = 0;
@@ -469,7 +486,7 @@ function mdBlocks(lines, refs, depth) {
       out.push({ t: 'quote', c: mdBlocks(q, refs, depth + 1) });
       continue;
     }
-    if (line.includes('|') && i + 1 < lines.length && MD_TSEP.test(lines[i + 1])) {
+    if (line.includes('|') && line.length <= MD_MAX_INLINE && i + 1 < lines.length && mdIsTableSep(lines[i + 1])) {
       const head = mdSplitRow(line), sep = mdSplitRow(lines[i + 1]);
       if (head.length === sep.length) {
         const align = sep.map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : '');
@@ -564,6 +581,54 @@ function mdParse(text) {
     return false;
   });
   return { blocks: mdBlocks(lines, refs, 0), truncated };
+}
+
+// ---------- media paths (images in the preview) ----------
+// Pelican: "{static}/a/b.jpg" is relative to the content folder, "{static}a/b.jpg" and "a/b.jpg" to the
+// folder of the Markdown file. Everything resolves to path segments below the content folder, or null.
+const MD_IMG_EXT = /\.(?:jpe?g|png|gif|webp|avif|svg)$/i;
+function mdMediaPath(src, docDir) {
+  let s = String(src).trim();
+  if (!s || s.length > 1000) return null;
+  let out = (docDir || []).slice();
+  const tag = /^(?:\{(?:static|attach|filename)\}|\|(?:static|attach|filename)\|)/i.exec(s);
+  if (tag) {
+    s = s.slice(tag[0].length);
+    if (s[0] === '/') { out = []; s = s.replace(/^\/+/, ''); }
+  } else if (s[0] === '/') {
+    if (s[1] === '/') return null; // protocol-relative URL
+    out = []; s = s.slice(1);
+  } else if (/^[a-z][a-z0-9+.-]*:/i.test(s)) {
+    return null; // http:, data:, javascript:, C:\ ...
+  }
+  const cut = s.search(/[?#]/);
+  if (cut >= 0) s = s.slice(0, cut);
+  for (const raw of s.split('/')) {
+    let seg;
+    try { seg = decodeURIComponent(raw); } catch (e) { return null; }
+    if (seg.includes('/') || seg.includes('\\') || seg.includes('\0')) return null;
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') { if (!out.length) return null; out.pop(); continue; }
+    out.push(seg);
+  }
+  return out.length && MD_IMG_EXT.test(out[out.length - 1]) ? out : null;
+}
+// Content folder as set in pelicanconf.py (PATH = 'content'), or null.
+function mdPelicanPath(text) {
+  const m = /^[ \t]*PATH[ \t]*=[ \t]*(['"])([^'"\r\n]+)\1/m.exec(String(text).slice(0, 200000));
+  return m ? m[2] : null;
+}
+// "content", "content/" or "a\b" -> ['content'] / ['a','b']. "." means the site folder itself.
+function mdSplitDir(s) {
+  return String(s).split(/[\\/]+/).filter(x => x && x !== '.' && x !== '..');
+}
+// Path below a prefix: (['content','images','a.jpg'], ['content']) -> ['images','a.jpg']; null when outside.
+function mdRelUnder(path, prefix) {
+  return prefix.every((p, i) => path[i] === p) && path.length > prefix.length ? path.slice(prefix.length) : null;
+}
+// One path segment as it is written into Markdown: spaces, brackets and parentheses would break the link.
+function mdEncodeSeg(seg) {
+  return seg.replace(/[\s()%"<>\\\[\]]/g, c => c === '(' ? '%28' : c === ')' ? '%29' : encodeURIComponent(c));
 }
 // </pure>
 
@@ -685,6 +750,7 @@ function ui() {
   $('dirty').className = dirty ? 'on' : '';
   document.title = (dirty ? '● ' : '') + fname + ' – Pelican MD';
   showStray();
+  mediaUi();
   schedulePreview();
   renderTabs();
 }
@@ -700,9 +766,8 @@ function buildInline(nodes, parent) {
       case 'br': parent.append(document.createElement('br')); return;
       case 'code': el = document.createElement('code'); el.textContent = n.v; break;
       case 'em': case 'strong': case 'del': el = document.createElement(n.t); buildInline(n.c, el); break;
-      case 'img': // never loaded: the page has no network access and must not leak requests
-        el = document.createElement('span'); el.className = 'img-ph';
-        el.textContent = '🖼 ' + (n.alt || n.src); el.title = n.src; break;
+      case 'img': // remote images are never loaded (no network access, no leaked requests); local ones come from the media folder
+        el = mediaImage(n); break;
       case 'a':
         if (n.href) { el = document.createElement('a'); el.href = n.href; el.target = '_blank'; el.rel = 'noopener noreferrer'; if (n.title) el.title = n.title; }
         else { el = document.createElement('span'); el.className = 'link-off'; el.title = n.raw; }
@@ -770,7 +835,221 @@ function schedulePreview() { if (prevOn && !prevTimer) prevTimer = setTimeout(re
 function setPreview(on) {
   prevOn = on; lsSet('pme.preview', on ? '1' : '0');
   prev.hidden = !on; $('btn-preview').setAttribute('aria-pressed', String(on));
-  if (on) { clearTimeout(prevTimer); renderPreview(); }
+  if (on) { clearTimeout(prevTimer); clearMediaCache(); renderPreview(); } // re-read images when the preview is (re)opened
+}
+
+// ---------- media folder (Chrome/Edge: File System Access API; files are only read) ----------
+// The user picks the Pelican site folder once; "{static}/x.jpg" is looked up below its content folder.
+const hasDir = 'showDirectoryPicker' in window;
+const MEDIA_MAX = 25 * 1024 * 1024, MEDIA_CACHE_MAX = 100;
+const MEDIA_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', svg: 'image/svg+xml' };
+const IMGTYPE = { description: 'Images', accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg'] } };
+const media = { root: null, name: '', contentPath: ['content'], imgPath: null, needsPermission: false };
+const mediaCache = new Map(), mediaPending = new Map();
+let mediaDocDir = [], mediaGen = 0;
+
+function clearMediaCache() {
+  mediaGen++;
+  mediaCache.forEach(c => URL.revokeObjectURL(c.url));
+  mediaCache.clear(); mediaPending.clear();
+}
+async function loadMedia(segs) {
+  const key = segs.join('/');
+  if (mediaCache.has(key)) return mediaCache.get(key).url;
+  if (mediaPending.has(key)) return mediaPending.get(key);
+  const gen = mediaGen;
+  const p = (async () => {
+    try {
+      let dir = media.root;
+      for (const seg of [...media.contentPath, ...segs.slice(0, -1)]) dir = await dir.getDirectoryHandle(seg);
+      const f = await (await dir.getFileHandle(segs[segs.length - 1])).getFile();
+      if (f.size > MEDIA_MAX) throw Object.assign(new Error('too big'), { code: 'big' });
+      const url = URL.createObjectURL(f.slice(0, f.size, MEDIA_MIME[key.split('.').pop().toLowerCase()]));
+      if (gen !== mediaGen) { URL.revokeObjectURL(url); throw Object.assign(new Error('stale'), { code: 'stale' }); }
+      mediaCache.set(key, { url });
+      if (mediaCache.size > MEDIA_CACHE_MAX) { const [k, c] = mediaCache.entries().next().value; URL.revokeObjectURL(c.url); mediaCache.delete(k); }
+      return url;
+    } catch (e) {
+      if (e.code) throw e;
+      if (e.name === 'NotAllowedError' || e.name === 'SecurityError') throw Object.assign(e, { code: 'denied' });
+      throw Object.assign(e, { code: 'missing' });
+    } finally { if (gen === mediaGen) mediaPending.delete(key); }
+  })();
+  mediaPending.set(key, p);
+  return p;
+}
+function imgPlaceholder(n, cls, title) {
+  const el = document.createElement('span');
+  el.className = cls; el.textContent = '🖼 ' + (n.alt || n.src); el.title = title;
+  return el;
+}
+function mediaImg(n, url, key) {
+  const img = document.createElement('img');
+  img.className = 'media-img'; img.alt = n.alt; img.decoding = 'async';
+  if (n.title) img.title = n.title;
+  img.addEventListener('error', () => { img.replaceWith(imgPlaceholder(n, 'img-ph img-miss', tr('mediaBroken', { path: key }))); });
+  img.src = url;
+  return img;
+}
+function mediaImage(n) {
+  const segs = media.root && !media.needsPermission ? mdMediaPath(n.src, mediaDocDir) : null;
+  if (!segs) return imgPlaceholder(n, 'img-ph', n.src);
+  const key = segs.join('/'), hit = mediaCache.get(key);
+  if (hit) return mediaImg(n, hit.url, key);
+  const el = imgPlaceholder(n, 'img-ph', n.src);
+  loadMedia(segs).then(url => {
+    if (el.isConnected) el.replaceWith(mediaImg(n, url, key));
+  }, err => {
+    if (err.code === 'stale' || !el.isConnected) return;
+    if (err.code === 'denied') { media.needsPermission = true; mediaUi(); return; }
+    el.className = 'img-ph img-miss';
+    el.title = err.code === 'big' ? tr('mediaTooBig', { path: key }) : tr('mediaNotFound', { path: key });
+  });
+  return el;
+}
+
+function mediaUi() {
+  const on = !!media.root, b = $('btn-media');
+  b.disabled = !hasDir;
+  b.textContent = on && !media.needsPermission ? tr('mediaConnected', { name: media.name }) : on ? tr('mediaReconnect') : tr('mediaFolder');
+  b.title = !hasDir ? tr('mediaUnsupported') : media.needsPermission ? tr('mediaReconnectTip') : on ? tr('mediaChange') : tr('mediaFolderTip');
+  b.classList.toggle('on', on && !media.needsPermission);
+  const dir = $('media-dir'), off = $('btn-media-off');
+  dir.hidden = off.hidden = !on;
+  const ib = $('btn-img-dir'), ip = media.imgPath && media.imgPath.join('/');
+  ib.hidden = !on || media.needsPermission;
+  ib.textContent = ip ? tr('imgDirSet', { path: ip }) : tr('imgDir');
+  ib.title = ip ? tr('imgDirChange', { path: ip }) : tr('imgDirTip');
+  ib.classList.toggle('on', !!ip);
+  dir.title = tr('mediaDir'); dir.setAttribute('aria-label', tr('mediaDir'));
+  off.title = tr('mediaOff'); off.setAttribute('aria-label', tr('mediaOff'));
+}
+
+// Folder handles survive a reload in IndexedDB; the browser still asks for permission once per session.
+function idb() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('pme', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+async function idbDo(mode, fn) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const req = fn(db.transaction('kv', mode).objectStore('kv'));
+    req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+  });
+}
+const mediaSave = () => idbDo('readwrite', s => s.put({ handle: media.root, contentDir: $('media-dir').value, imgPath: media.imgPath }, 'media')).catch(() => {});
+
+async function contentDirHandle() {
+  let dir = media.root;
+  for (const seg of media.contentPath) dir = await dir.getDirectoryHandle(seg);
+  return dir;
+}
+async function walk(segs) {
+  let dir = media.root;
+  for (const seg of segs) dir = await dir.getDirectoryHandle(seg);
+  return dir;
+}
+async function refreshDocDir() {
+  const h = handle;
+  let dir = [];
+  if (media.root && h && !media.needsPermission) {
+    try {
+      const rel = await media.root.resolve(h), rest = rel && mdRelUnder(rel, media.contentPath);
+      if (rest) dir = rest.slice(0, -1);
+    } catch (e) { /* file is not inside the site folder */ }
+  }
+  if (h === handle && dir.join('/') !== mediaDocDir.join('/')) { mediaDocDir = dir; schedulePreview(); }
+}
+async function checkContentDir() {
+  const input = $('media-dir');
+  if (!media.root || media.needsPermission) { input.removeAttribute('aria-invalid'); return; }
+  try { await contentDirHandle(); input.removeAttribute('aria-invalid'); input.title = tr('mediaDir'); }
+  catch (e) {
+    input.setAttribute('aria-invalid', 'true');
+    input.title = tr('mediaDirBad', { name: media.contentPath.join('/') || '.' });
+    say(input.title, true);
+  }
+}
+async function afterMedia() {
+  mediaUi(); await refreshDocDir(); await checkContentDir(); schedulePreview();
+}
+async function detectContentDir(h) {
+  try { return mdPelicanPath(await (await (await h.getFileHandle('pelicanconf.py')).getFile()).text()); }
+  catch (e) { return null; }
+}
+async function setMedia(h) {
+  clearMediaCache();
+  media.root = h; media.name = h.name; media.needsPermission = false;
+  const dir = (await detectContentDir(h)) || 'content';
+  media.contentPath = mdSplitDir(dir);
+  $('media-dir').value = dir;
+  media.imgPath = null; // default: content/images when it exists
+  try { await walk([...media.contentPath, 'images']); media.imgPath = [...media.contentPath, 'images']; } catch (e) { /* no such folder */ }
+  mediaSave();
+  await afterMedia();
+}
+async function pickMedia() {
+  if (!hasDir) return;
+  if (media.root && media.needsPermission) { // same folder, just needs the permission back
+    try {
+      if (await media.root.requestPermission({ mode: 'read' }) === 'granted') { media.needsPermission = false; clearMediaCache(); await afterMedia(); return; }
+    } catch (e) { /* choose the folder again below */ }
+  }
+  try { await setMedia(await window.showDirectoryPicker({ id: 'pme-media', mode: 'read' })); }
+  catch (e) { if (e.name !== 'AbortError') say(tr('mediaFailed') + e.message, true); }
+}
+async function pickImgDir() {
+  if (!media.root || media.needsPermission) return;
+  let start = media.root;
+  try { start = await walk(media.imgPath || media.contentPath); } catch (e) { /* start at the project folder */ }
+  try {
+    const h = await window.showDirectoryPicker({ id: 'pme-img', mode: 'read', startIn: start });
+    const rel = await media.root.resolve(h);
+    if (!rel) { say(tr('imgDirOutside'), true); return; }
+    media.imgPath = rel; mediaSave(); mediaUi();
+  } catch (e) { if (e.name !== 'AbortError') say(tr('mediaFailed') + e.message, true); }
+}
+function mediaOff() {
+  clearMediaCache();
+  media.root = null; media.name = ''; media.imgPath = null; media.needsPermission = false; mediaDocDir = [];
+  $('media-dir').removeAttribute('aria-invalid');
+  idbDo('readwrite', s => s.delete('media')).catch(() => {});
+  mediaUi(); schedulePreview();
+}
+async function restoreMedia() {
+  if (!hasDir) return;
+  try {
+    const rec = await idbDo('readonly', s => s.get('media'));
+    if (!rec || !rec.handle) return;
+    media.root = rec.handle; media.name = rec.handle.name;
+    $('media-dir').value = rec.contentDir || 'content';
+    media.contentPath = mdSplitDir($('media-dir').value || 'content');
+    media.imgPath = Array.isArray(rec.imgPath) ? rec.imgPath.filter(x => typeof x === 'string') : null;
+    media.needsPermission = (await rec.handle.queryPermission({ mode: 'read' })) !== 'granted';
+    await afterMedia();
+  } catch (e) { /* nothing stored, or storage blocked */ }
+}
+// Image button with a connected folder: pick files, insert ![](…) with the right {static} path.
+async function pickImages() {
+  let start = media.root;
+  try { start = await walk(media.imgPath || media.contentPath); } catch (e) { /* folder missing: start at the project folder */ }
+  const hs = await window.showOpenFilePicker({ multiple: true, startIn: start, types: [IMGTYPE] });
+  const paths = [];
+  for (const h of hs) {
+    const rel = await media.root.resolve(h), rest = rel && mdRelUnder(rel, media.contentPath);
+    if (!rest) { say(tr('mediaOutside', { name: h.name }), true); continue; }
+    paths.push('{static}/' + rest.map(mdEncodeSeg).join('/'));
+  }
+  if (!paths.length) return;
+  const { v, s, e } = sel();
+  const alt = s !== e && paths.length === 1 ? v.slice(s, e) : '';
+  const ins = paths.map((p, k) => '![' + (k === 0 ? alt : '') + '](' + p + ')').join('\n');
+  applyEdit(v.slice(0, s) + ins + v.slice(e), s + 2, s + 2 + alt.length);
 }
 function showStray() {
   const el = $('stray-warn');
@@ -991,6 +1270,7 @@ function activate(i) {
   setDirty(ed.value !== savedText);
   ed.setSelectionRange(d.selS, d.selE); ed.scrollTop = d.scroll;
   ed.focus();
+  refreshDocDir();
 }
 function renderTabs() {
   const nav = $('tabs');
@@ -1071,6 +1351,7 @@ async function saveAs() {
     const h = await window.showSaveFilePicker({ suggestedName: fname, types: [MDTYPE] });
     await writeTo(h);
     handle = h; fname = h.name; markSaved(); say(tr('saved'));
+    refreshDocDir();
   } catch (e) { if (e.name !== 'AbortError') say(tr('saveFailed') + e.message, true); }
 }
 async function save() {
@@ -1235,6 +1516,10 @@ function fmtLink() {
   applyEdit(v.slice(0, s) + '[' + label + '](https://)' + v.slice(e), us, us + 8);
 }
 function fmtImage() {
+  if (media.root && !media.needsPermission && 'showOpenFilePicker' in window) {
+    pickImages().catch(err => { if (err.name !== 'AbortError') say(tr('openFailed') + err.message, true); });
+    return;
+  }
   const { v, s, e } = sel();
   const hasSel = s !== e;
   const alt = hasSel ? v.slice(s, e) : tr('phAlt');
@@ -1306,10 +1591,19 @@ $('pack-input').addEventListener('change', async e => {
   } catch (err) { say(tr('packInvalid'), true); }
 });
 $('btn-preview').addEventListener('click', () => setPreview(!prevOn));
+$('btn-media').addEventListener('click', pickMedia);
+$('btn-media-off').addEventListener('click', mediaOff);
+$('btn-img-dir').addEventListener('click', pickImgDir);
+$('media-dir').addEventListener('change', e => {
+  media.contentPath = mdSplitDir(e.target.value.trim() || 'content');
+  if (!e.target.value.trim()) e.target.value = 'content';
+  clearMediaCache(); mediaSave(); afterMedia();
+});
 docs = [newDoc()];
 activate(0);
 applyLang();
 setPreview(prevOn);
+restoreMedia();
 })();
 </script>
 </body>
