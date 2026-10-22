@@ -6,49 +6,42 @@ A single-file Markdown editor with a form for Pelican frontmatter. No install: o
 The UI is translatable. Translations are standard `messages.json` files, so
 collaborative translation tools can work on them directly.
 
-## Preview
+## ⚠️ AI slop warning
 
-The **Preview** button in the toolbar shows the rendered Markdown (without the frontmatter) next to
-the editor. The choice is remembered. It follows Python-Markdown, which Pelican uses: a list needs a
-blank line before it, nested lists need 4 spaces, `#Heading` works without a space.
-Supported: headings, emphasis, code, fenced and indented code blocks, quotes, lists, tables,
-links, reference links, images, rules.
+This is AI slop. It was written entirely by Claude / Claude Code, and I have next to no coding
+experience, so I can't vouch for the code. It was reviewed and tested by the same AI that wrote it, which
+proves little. Expect bugs, odd decisions and code nobody has read carefully. **Don't trust it with
+files you can't afford to lose: keep backups or use Git.**
 
-The preview is built with DOM calls only (never `innerHTML`), so it is safe with the page's strict CSP:
+I built it for myself. I don't care whether anybody likes it, uses it or thinks it's shit. If you want
+to use it, fine. If you don't, also fine. No promises about support, fixes or stability.
 
-- Raw HTML in the text is shown as text, not rendered.
-- Only `http(s)` and `mailto` links are clickable (they open in a new tab). Relative links,
-  `{filename}/…` and anything else show as inert text with the target in the tooltip.
-- Remote images are never loaded (the page makes no network requests). Local images need a project folder, see below.
-- Very long documents are cut after 300,000 characters, and paragraphs over 8,000 characters are shown as plain text.
+## What it does
 
-The parser (`mdParse`) is inside the `// <pure>` block, so it is tested directly in `test/preview.test.js`.
+I run a few static Pelican blogs and found no editor that handles the frontmatter the way I wanted. So I
+had Claude build one. It is one HTML file that runs in the browser and does the following:
 
-### Project folder and media folder (images in the preview)
+- **Frontmatter form.** The Pelican metadata (`Title:`, `Date:`, `Tags:`, `Slug:`, …) at the top of the
+  file is shown as editable fields next to the Markdown text. You can add and remove fields, and choose
+  whether new field names are lowercase. A warning appears when a stray line would end the frontmatter early.
+- **Markdown editor.** A plain text editor with a toolbar (bold, italic, headings, lists, quote, code,
+  link, image) and shortcuts such as Ctrl+B, Ctrl+I and Ctrl+K. Undo and redo, and several files in tabs.
+- **Files.** New, Open, Save and Save as. In Chrome and Edge, Save writes straight to the file. In
+  other browsers it downloads a copy. You can also drop a file onto the editor. You are asked before
+  closing a tab with unsaved changes.
+- **Preview.** A button shows the rendered Markdown next to the editor, following Python-Markdown's rules
+  (a list needs a blank line before it, nested lists need 4 spaces). It supports headings, emphasis,
+  code, quotes, lists, tables, links, images and rules. It is built without `innerHTML`: raw HTML is shown
+  as text, only `http(s)` and `mailto` links are clickable, and remote images are never loaded.
+- **Images in the preview.** Choose your Pelican *project* folder (the one containing `pelicanconf.py`).
+  The editor reads `PATH` from it and shows local images referenced as `{static}/…`, `{attach}/…`,
+  `{filename}/…` or relative paths. You can also pick a media folder, and the image button inserts
+  `![](…)` with the correct `{static}/…` path. Folders are only read, never changed. Chrome and Edge only.
+- **Languages.** The UI is translatable (English and German included). See below.
 
-Click **Project folder** and choose your Pelican *project* folder (the one with `pelicanconf.py` and the
-content folder, e.g. `ramenrakete`). Not a subfolder like `content/images`. The editor then shows local
-images in the preview, for example `![alt]({static}/images/reviews/photo.jpg "title")`.
+It makes no network requests and uploads nothing. It does not run Pelican, publish anything or manage
+your site. It is only an editor.
 
-- The **content folder** next to the button is the Pelican `PATH` setting. It is read from
-  `pelicanconf.py` (`PATH = 'content'`) and defaults to `content`. Change it if your project differs.
-  A red border means the folder does not exist in the project folder. `{static}/…` paths start there, so
-  any layout works (`content/images/reviews`, `content/pics`, …).
-- The **Media folder** button (appears once a project is connected) chooses where your images live, anywhere
-  inside the project folder. It defaults to `content/images` when that exists. The 🖼 button opens its
-  file picker there. The choice is only a starting point: it doesn't limit which images can be shown.
-- `{static}/x.jpg`, `{attach}/x.jpg`, `{filename}/x.jpg` and `/x.jpg` are relative to the content folder.
-  `x.jpg`, `./x.jpg`, `../x.jpg` and `{static}x.jpg` are relative to the Markdown file. That folder is only
-  known for files opened with **Open** that sit inside the project folder; otherwise the content folder is assumed.
-- The 🖼 button inserts `![](…)` with the correct `{static}/…` path (several files at once are possible).
-  Images outside the content folder are refused with a message.
-- A missing, oversized (>25 MB) or broken image stays a dashed placeholder; the tooltip says which path was looked up.
-- The folder is only **read**. Nothing is uploaded, copied or changed, and paths cannot leave the content folder
-  (`..`, encoded `..`, backslashes and URL schemes are refused). Remote `http(s)` images still show as placeholders.
-- The folders are remembered (IndexedDB). After a browser restart one click on **Reconnect project folder** grants access again.
-- Works in **Chrome and Edge** only (File System Access API). In other browsers the button is disabled.
-  Firefox/Safari support is a known gap.
-- The page's CSP allows `img-src data: blob:`: images come from `blob:` URLs the page creates itself, never from the network.
 
 ## Project layout
 
